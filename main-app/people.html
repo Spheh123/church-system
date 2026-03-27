@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>People Directory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="People Directory" data-nav="people">
+    <main class="page-content">
+      <section class="panel filter-panel">
+        <div class="panel-heading">
+          <h1>People</h1>
+          <span class="panel-meta">Synced live from the existing Firestore `people` collection</span>
+        </div>
+        <div class="toolbar">
+          <input type="search" id="searchInput" placeholder="Search by name, email, phone, or occupation">
+          <select id="statusFilter"></select>
+          <select id="assignmentFilter">
+            <option value="">All assignments</option>
+            <option value="assigned">Assigned only</option>
+            <option value="unassigned">Unassigned only</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="peopleList" class="card-grid"></section>
+      <div id="peopleEmptyState" class="empty-state hidden">No people matched the current filter.</div>
+    </main>
+  </div>
+
+  <script type="module" src="js/people.js"></script>
+</body>
+</html>

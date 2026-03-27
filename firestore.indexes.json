@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "activity_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "target_person_id", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "people",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "assigned_to", "order": "ASCENDING" },
+        { "fieldPath": "follow_up_status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Person Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="Person Profile" data-nav="people">
+    <main class="page-content">
+      <section class="detail-header">
+        <div>
+          <a class="text-link" href="people.html">Back to people</a>
+          <h1 id="personName">Loading profile...</h1>
+          <p id="personMeta" class="muted-text">Fetching Firestore details.</p>
+        </div>
+        <div class="detail-actions">
+          <span id="profileStatusBadgeContainer"><span id="profileStatusBadge" class="status-badge">Pending</span></span>
+          <a id="openWhatsAppLink" class="secondary-action" target="_blank" rel="noopener noreferrer">Open WhatsApp</a>
+        </div>
+      </section>
+
+      <section class="grid-layout person-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Full Profile</h2>
+            <span class="panel-meta">All Firestore fields</span>
+          </div>
+          <div id="profileFields" class="detail-grid"></div>
+        </article>
+
+        <article class="panel prayer-panel">
+          <div class="panel-heading">
+            <h2>Prayer Points</h2>
+            <span class="panel-meta">Highlighted for pastoral review</span>
+          </div>
+          <div id="prayerPointsCard" class="prayer-box"></div>
+        </article>
+      </section>
+
+      <section class="grid-layout person-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Follow-up Management</h2>
+            <span class="panel-meta">Assign ownership and update status</span>
+          </div>
+          <form id="personUpdateForm" class="form-grid">
+            <label>
+              Assigned to
+              <select id="assignedToSelect"></select>
+            </label>
+            <label>
+              Follow-up status
+              <select id="followUpStatusSelect"></select>
+            </label>
+            <label class="full-width">
+              Update summary
+              <textarea id="updateSummary" rows="3" placeholder="What changed on this person record?"></textarea>
+            </label>
+            <button type="submit" class="primary-action">Save follow-up changes</button>
+          </form>
+          <div id="personUpdateMessage" class="inline-alert hidden"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Notes</h2>
+            <span class="panel-meta">Stored in `people/{id}/notes`</span>
+          </div>
+          <form id="noteForm" class="stack-form">
+            <textarea id="noteText" rows="4" placeholder="Add a follow-up note, prayer update, or conversation summary" required></textarea>
+            <button type="submit" class="secondary-action">Add note</button>
+          </form>
+          <div id="notesList" class="stack-list"></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Activity History</h2>
+          <span class="panel-meta">Who viewed or updated this record</span>
+        </div>
+        <div id="personActivityLog" class="timeline-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/person.js"></script>
+</body>
+</html>

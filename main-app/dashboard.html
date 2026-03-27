@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pastor Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="Pastor Dashboard" data-nav="dashboard">
+    <main class="page-content">
+      <section class="hero-panel">
+        <div>
+          <span class="eyebrow">Real-time Ministry Oversight</span>
+          <h1>Pastoral care at a glance</h1>
+          <p>Track prayers, new visitors, contact progress, and team activity as it happens in Firestore.</p>
+        </div>
+        <div class="hero-metrics" id="summaryCards"></div>
+      </section>
+
+      <section class="grid-layout dashboard-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Prayer Priority</h2>
+            <span class="panel-meta">Live prayer needs</span>
+          </div>
+          <div id="prayerList" class="stack-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Not Yet Contacted</h2>
+            <span class="panel-meta">Immediate follow-up queue</span>
+          </div>
+          <div id="notContactedList" class="stack-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>New Visitors</h2>
+            <span class="panel-meta">Last 48 hours</span>
+          </div>
+          <div id="newVisitorsList" class="stack-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Follow-up Progress</h2>
+            <span class="panel-meta">Status distribution</span>
+          </div>
+          <div id="progressSummary" class="status-summary"></div>
+        </article>
+      </section>
+
+      <section class="grid-layout admin-grid">
+        <article class="panel admin-panel">
+          <div class="panel-heading">
+            <h2>User Provisioning</h2>
+            <span class="panel-meta">Admins and pastors can create accounts</span>
+          </div>
+          <form id="createUserForm" class="form-grid">
+            <label>
+              Full name
+              <input type="text" id="newUserName" required>
+            </label>
+            <label>
+              Email
+              <input type="email" id="newUserEmail" required>
+            </label>
+            <label>
+              Role
+              <select id="newUserRole" required></select>
+            </label>
+            <button type="submit" class="primary-action">Create user</button>
+          </form>
+          <div id="generatedPasswordCard" class="inline-alert hidden"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Team Activity</h2>
+            <span class="panel-meta">Last active and password resets</span>
+          </div>
+          <div id="userDirectory" class="table-card"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

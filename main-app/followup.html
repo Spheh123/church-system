@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Follow-up Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="Follow-up Workspace" data-nav="followup">
+    <main class="page-content">
+      <section class="panel filter-panel">
+        <div class="panel-heading">
+          <h1>Follow-up Workspace</h1>
+          <span class="panel-meta">Manage assigned visitors, contact outcomes, and prayer-sensitive care.</span>
+        </div>
+        <div class="toolbar">
+          <select id="followupStatusFilter"></select>
+          <select id="followupAssignmentScope">
+            <option value="mine">My queue</option>
+            <option value="all">All assignments</option>
+            <option value="unassigned">Unassigned only</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="followupList" class="card-grid"></section>
+      <div id="followupEmptyState" class="empty-state hidden">No follow-up records matched the current view.</div>
+    </main>
+  </div>
+
+  <script type="module" src="js/followup.js"></script>
+</body>
+</html>

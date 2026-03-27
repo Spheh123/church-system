@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="Reporting" data-nav="reports">
+    <main class="page-content">
+      <section class="hero-panel">
+        <div>
+          <span class="eyebrow">Google Sheets Reporting</span>
+          <h1>Daily exports and on-demand reporting</h1>
+          <p>Send curated people and follow-up data into Google Sheets through Firebase Functions and your existing Apps Script integration.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="exportDailyReportButton" class="primary-action">Export daily report</button>
+          <button id="exportFullReportButton" class="secondary-action">Export full dataset</button>
+        </div>
+      </section>
+
+      <section class="grid-layout reports-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Export Summary</h2>
+            <span class="panel-meta">Current reporting scope</span>
+          </div>
+          <div id="reportSummary" class="status-summary"></div>
+          <div id="reportMessage" class="inline-alert hidden"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Recent Export Jobs</h2>
+            <span class="panel-meta">Function-driven audit trail</span>
+          </div>
+          <div id="exportHistory" class="timeline-list"></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Preview</h2>
+          <span class="panel-meta">Fields included in the Google Sheets export</span>
+        </div>
+        <div id="reportPreview" class="table-card"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/reports.js"></script>
+</body>
+</html>

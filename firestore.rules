@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return signedIn() && userDoc().exists() ? userDoc().data.role : null;
+    }
+
+    function isLeader() {
+      return role() in ['Admin', 'Pastor'];
+    }
+
+    function isFollowup() {
+      return role() == 'Follow-up team';
+    }
+
+    function allowedStatus() {
+      return request.resource.data.follow_up_status in ['Pending', 'Contacted', 'Not reachable', 'Follow-up again', 'Completed'];
+    }
+
+    function preservesProtectedFields() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'follow_up_status',
+        'assigned_to',
+        'updatedAt',
+        'updatedBy'
+      ]);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow update: if signedIn() &&
+        (
+          (request.auth.uid == userId &&
+            request.resource.data.diff(resource.data).changedKeys().hasOnly(['lastActive'])) ||
+          false
+        );
+      allow create, delete: if false;
+    }
+
+    match /people/{personId} {
+      allow read: if signedIn();
+      allow update: if signedIn() && (
+        isLeader() ||
+        (
+          isFollowup() &&
+          resource.data.assigned_to == userDoc().data.email &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'follow_up_status',
+            'updatedAt',
+            'updatedBy'
+          ]) &&
+          allowedStatus()
+        )
+      );
+      allow create, delete: if false;
+
+      match /notes/{noteId} {
+        allow read: if signedIn();
+        allow create: if signedIn() &&
+          request.resource.data.keys().hasOnly(['text', 'createdBy', 'timestamp']) &&
+          request.resource.data.createdBy == userDoc().data.email;
+        allow update, delete: if false;
+      }
+    }
+
+    match /activity_logs/{logId} {
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.user_email == userDoc().data.email;
+      allow update: if signedIn() &&
+        resource.data.user_email == userDoc().data.email &&
+        request.resource.data.user_email == resource.data.user_email;
+      allow delete: if false;
+    }
+
+    match /report_exports/{exportId} {
+      allow read: if isLeader();
+      allow write: if false;
+    }
+  }
+}

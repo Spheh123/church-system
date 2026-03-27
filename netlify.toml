@@ -1,0 +1,37 @@
+[build]
+publish = "."
+
+[[redirects]]
+from = "/"
+to = "/main-app/index.html"
+status = 301
+
+[[redirects]]
+from = "/login"
+to = "/main-app/login.html"
+status = 301
+
+[[redirects]]
+from = "/dashboard"
+to = "/main-app/dashboard.html"
+status = 301
+
+[[redirects]]
+from = "/people"
+to = "/main-app/people.html"
+status = 301
+
+[[redirects]]
+from = "/person"
+to = "/main-app/person.html"
+status = 301
+
+[[redirects]]
+from = "/followup"
+to = "/main-app/followup.html"
+status = 301
+
+[[redirects]]
+from = "/reports"
+to = "/main-app/reports.html"
+status = 301
