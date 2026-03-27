@@ -1,12 +1,11 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyBZTrE4puIHky5qaB1jmtoGuUyqVTWbg0Q",
+  apiKey: "AIzaSyBZTrE4PuhIky5qaB1jmtoGuUyqVTWbg0Q",
   authDomain: "streams-of-joy-jhb.firebaseapp.com",
   projectId: "streams-of-joy-jhb",
   storageBucket: "streams-of-joy-jhb.firebasestorage.app",
   messagingSenderId: "13302946345",
-  appId: "1:13302946345:web:90f191028bdc8cc1f51a38",
+  appId: "1:13302946345:web:90f191028bdc8cc1f51a38"
 };
-
 export const appConfig = {
   appName: "Streams of Joy Johannesburg CMS",
   supportEmail: "admin@streamsofjoyjhb.org",
