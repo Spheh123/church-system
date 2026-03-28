@@ -26,6 +26,7 @@ let currentAuthUser = null;
 let currentUserProfile = null;
 let heartbeatTimer = null;
 let unloadBound = false;
+let authLoadingTimeout = null;
 
 function navigateTo(target) {
   const currentPath = window.location.pathname.split("/").pop() || "index.html";
@@ -34,6 +35,37 @@ function navigateTo(target) {
   }
 
   window.location.assign(target);
+}
+
+function stopAuthLoading() {
+  document.body.classList.remove("auth-loading");
+  if (authLoadingTimeout) {
+    window.clearTimeout(authLoadingTimeout);
+    authLoadingTimeout = null;
+  }
+}
+
+function showAuthProblem(message) {
+  stopAuthLoading();
+
+  const shell = document.getElementById("appShell");
+  if (!shell) {
+    return;
+  }
+
+  shell.innerHTML = `
+    <main class="page-content">
+      <section class="panel auth-problem">
+        <span class="eyebrow">Access Check</span>
+        <h1>We could not finish loading your workspace</h1>
+        <p>${escapeHtml(message)}</p>
+        <div class="card-actions">
+          <a class="secondary-action" href="login.html">Return to login</a>
+          <a class="ghost-action" href="people.html">Try people page</a>
+        </div>
+      </section>
+    </main>
+  `;
 }
 
 function getLoginPage() {
@@ -247,8 +279,18 @@ async function finalizeAuth(user) {
 
   currentAuthUser = user;
   currentUserProfile = profile;
-  await startActivitySession(profile);
-  await updateLastActive(profile);
+
+  Promise.allSettled([
+    startActivitySession(profile),
+    updateLastActive(profile),
+  ]).then((results) => {
+    results
+      .filter((result) => result.status === "rejected")
+      .forEach((result) => {
+        console.warn("Non-blocking auth task failed", result.reason);
+      });
+  });
+
   startHeartbeat(profile);
   bindUnload();
 
@@ -257,6 +299,9 @@ async function finalizeAuth(user) {
 
 export async function initProtectedPage({ allowedRoles = roles, onReady, viewAction = "view_page" } = {}) {
   document.body.classList.add("auth-loading");
+  authLoadingTimeout = window.setTimeout(() => {
+    showAuthProblem("Your account signed in, but the application is waiting too long for Firebase data. This usually means the `users` profile, Firestore rules, or a deployed script is out of sync.");
+  }, 8000);
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -277,8 +322,11 @@ export async function initProtectedPage({ allowedRoles = roles, onReady, viewAct
 
         renderShell(profile);
         bindLogout(profile);
-        await logActivity(profile, viewAction, null, { page: window.location.pathname });
-        document.body.classList.remove("auth-loading");
+        stopAuthLoading();
+
+        logActivity(profile, viewAction, null, { page: window.location.pathname }).catch((error) => {
+          console.warn("Activity log write failed", error);
+        });
 
         if (typeof onReady === "function") {
           await onReady({ authUser: user, profile });
@@ -289,7 +337,9 @@ export async function initProtectedPage({ allowedRoles = roles, onReady, viewAct
           resolve({ authUser: user, profile });
         }
       } catch (error) {
-        document.body.classList.remove("auth-loading");
+        stopAuthLoading();
+        console.error("Protected page initialisation failed", error);
+        showAuthProblem(error.message || "Authentication failed while loading the page.");
         if (!settled) {
           settled = true;
           reject(error);
@@ -388,6 +438,7 @@ function initIndexPage() {
 }
 
 if (getLoginPage()) {
+  stopAuthLoading();
   initLoginPage();
 }
 
