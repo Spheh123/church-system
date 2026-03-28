@@ -1,21 +1,12 @@
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBZTrE4PuhIky5qaB1jmtoGuUyqVTWbg0Q",
+export const firebaseConfig = {
+  apiKey: "AIzaSyBZTrE4puIHky5qaB1jmtoGuUyqVTWbg0Q",
   authDomain: "streams-of-joy-jhb.firebaseapp.com",
   projectId: "streams-of-joy-jhb",
   storageBucket: "streams-of-joy-jhb.firebasestorage.app",
   messagingSenderId: "13302946345",
-  appId: "1:13302946345:web:90f191028bdc8cc1f51a38"
+  appId: "1:13302946345:web:90f191028bdc8cc1f51a38",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
 export const appConfig = {
   appName: "Streams of Joy Johannesburg CMS",
   supportEmail: "admin@streamsofjoyjhb.org",
@@ -44,8 +35,8 @@ export const statusToneMap = {
 
 export const navItems = [
   { key: "dashboard", label: "Dashboard", href: "dashboard.html", roles: ["Admin", "Pastor"] },
-  { key: "people", label: "People", href: "people.html", roles: roles },
-  { key: "followup", label: "Follow-up", href: "followup.html", roles: roles },
+  { key: "people", label: "People", href: "people.html", roles },
+  { key: "followup", label: "Follow-up", href: "followup.html", roles },
   { key: "reports", label: "Reports", href: "reports.html", roles: ["Admin", "Pastor"] },
 ];
 
