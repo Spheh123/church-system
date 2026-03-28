@@ -60,12 +60,26 @@ function showAuthProblem(message) {
         <h1>We could not finish loading your workspace</h1>
         <p>${escapeHtml(message)}</p>
         <div class="card-actions">
-          <a class="secondary-action" href="login.html">Return to login</a>
-          <a class="ghost-action" href="people.html">Try people page</a>
+          <button id="forceReturnLogin" class="secondary-action" type="button">Return to login</button>
+          <button id="retryCurrentPage" class="ghost-action" type="button">Retry this page</button>
         </div>
       </section>
     </main>
   `;
+
+  document.getElementById("forceReturnLogin")?.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.warn("Sign out during recovery failed", error);
+    }
+
+    navigateTo("login.html");
+  });
+
+  document.getElementById("retryCurrentPage")?.addEventListener("click", () => {
+    window.location.reload();
+  });
 }
 
 function getLoginPage() {

@@ -1,5 +1,5 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyBZTrE4PuhIky5qaB1jmtoGuUyqVTWbg0Q",
+  apiKey: "AIzaSyBZTrE4puIHky5qaB1jmtoGuUyqVTWbg0Q",
   authDomain: "streams-of-joy-jhb.firebaseapp.com",
   projectId: "streams-of-joy-jhb",
   storageBucket: "streams-of-joy-jhb.firebasestorage.app",
