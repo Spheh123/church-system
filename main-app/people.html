@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="People directory for Streams of Joy Johannesburg Church Management System">
   <title>People Directory</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,9 +14,18 @@
 <body>
   <div id="appShell" class="app-shell" data-page-title="People Directory" data-nav="people">
     <main class="page-content">
+      <section class="hero-panel">
+        <div>
+          <span class="eyebrow">Connected Visitor Directory</span>
+          <h1>People</h1>
+          <p>Search, review prayer needs, and move new guests into structured follow-up without leaving the live Firestore feed.</p>
+        </div>
+        <div id="directoryStats" class="hero-metrics"></div>
+      </section>
+
       <section class="panel filter-panel">
         <div class="panel-heading">
-          <h1>People</h1>
+          <h2>Directory Filters</h2>
           <span class="panel-meta">Synced live from the existing Firestore `people` collection</span>
         </div>
         <div class="toolbar">

@@ -27,6 +27,15 @@ let currentUserProfile = null;
 let heartbeatTimer = null;
 let unloadBound = false;
 
+function navigateTo(target) {
+  const currentPath = window.location.pathname.split("/").pop() || "index.html";
+  if (currentPath === target) {
+    return;
+  }
+
+  window.location.assign(target);
+}
+
 function getLoginPage() {
   return window.location.pathname.endsWith("/login.html");
 }
@@ -171,6 +180,7 @@ function renderShell(profile) {
   `;
 
   shell.dataset.enhanced = "true";
+  shell.classList.add("shell-ready");
 }
 
 function bindLogout(profile) {
@@ -187,7 +197,7 @@ function bindLogout(profile) {
     try {
       await finishActivitySession(profile, "manual-logout");
       await signOut(auth);
-      window.location.href = "login.html";
+      navigateTo("login.html");
     } catch (error) {
       console.error("Logout failed", error);
       logoutButton.disabled = false;
@@ -231,7 +241,7 @@ async function finalizeAuth(user) {
 
   if (!profile) {
     await signOut(auth);
-    window.location.href = "login.html";
+    navigateTo("login.html");
     throw new Error("No profile document exists for this account.");
   }
 
@@ -246,12 +256,14 @@ async function finalizeAuth(user) {
 }
 
 export async function initProtectedPage({ allowedRoles = roles, onReady, viewAction = "view_page" } = {}) {
+  document.body.classList.add("auth-loading");
+
   return new Promise((resolve, reject) => {
     let settled = false;
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        window.location.href = "login.html";
+        navigateTo("login.html");
         return;
       }
 
@@ -259,13 +271,14 @@ export async function initProtectedPage({ allowedRoles = roles, onReady, viewAct
         const profile = await finalizeAuth(user);
 
         if (!allowedRoles.includes(profile.role)) {
-          window.location.href = routeForRole(profile.role);
+          navigateTo(routeForRole(profile.role));
           return;
         }
 
         renderShell(profile);
         bindLogout(profile);
         await logActivity(profile, viewAction, null, { page: window.location.pathname });
+        document.body.classList.remove("auth-loading");
 
         if (typeof onReady === "function") {
           await onReady({ authUser: user, profile });
@@ -276,6 +289,7 @@ export async function initProtectedPage({ allowedRoles = roles, onReady, viewAct
           resolve({ authUser: user, profile });
         }
       } catch (error) {
+        document.body.classList.remove("auth-loading");
         if (!settled) {
           settled = true;
           reject(error);
@@ -325,7 +339,7 @@ async function handleLoginSubmit(event) {
   try {
     const credential = await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
     const profile = await finalizeAuth(credential.user);
-    window.location.href = routeForRole(profile.role);
+    navigateTo(routeForRole(profile.role));
   } catch (error) {
     console.error("Login error", error);
     setMessage(message, error.message.replace("Firebase: ", ""), "error");
@@ -349,7 +363,7 @@ function initLoginPage() {
 
     try {
       const profile = await finalizeAuth(user);
-      window.location.href = routeForRole(profile.role);
+      navigateTo(routeForRole(profile.role));
     } catch (error) {
       console.error(error);
     }
@@ -359,16 +373,16 @@ function initLoginPage() {
 function initIndexPage() {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      window.location.href = "login.html";
+      navigateTo("login.html");
       return;
     }
 
     try {
       const profile = await finalizeAuth(user);
-      window.location.href = routeForRole(profile.role);
+      navigateTo(routeForRole(profile.role));
     } catch (error) {
       console.error(error);
-      window.location.href = "login.html";
+      navigateTo("login.html");
     }
   });
 }

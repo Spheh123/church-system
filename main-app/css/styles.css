@@ -39,6 +39,22 @@ body {
     linear-gradient(180deg, #fbf6ef 0%, #f2ece4 100%);
 }
 
+body.auth-loading::before {
+  content: "Loading secure workspace...";
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(251, 246, 239, 0.92);
+  color: var(--brand-dark);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 999;
+  backdrop-filter: blur(10px);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -149,8 +165,13 @@ textarea {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
+  width: 100%;
+}
+
+.app-shell.shell-ready {
+  grid-template-columns: 290px minmax(0, 1fr);
 }
 
 .sidebar {
@@ -240,6 +261,9 @@ textarea {
   padding: 1.4rem 2rem 2rem;
   display: grid;
   gap: 1.4rem;
+  align-content: start;
+  width: 100%;
+  min-width: 0;
 }
 
 .panel,
@@ -268,6 +292,7 @@ textarea {
   align-items: start;
   justify-content: space-between;
   gap: 1.2rem;
+  width: 100%;
 }
 
 .hero-metrics,
@@ -444,6 +469,10 @@ textarea {
   top: 0.8rem;
   z-index: 2;
   backdrop-filter: blur(12px);
+}
+
+.page-content > * {
+  animation: rise-in 320ms ease both;
 }
 
 .detail-header {
@@ -631,6 +660,18 @@ textarea {
 @keyframes progress {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(310%); }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 1180px) {

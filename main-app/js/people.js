@@ -13,8 +13,23 @@ const statusFilter = document.getElementById("statusFilter");
 const assignmentFilter = document.getElementById("assignmentFilter");
 const peopleList = document.getElementById("peopleList");
 const peopleEmptyState = document.getElementById("peopleEmptyState");
+const directoryStats = document.getElementById("directoryStats");
 
 let allPeople = [];
+
+function renderDirectoryStats() {
+  const total = allPeople.length;
+  const prayer = allPeople.filter((person) => person.prayer_points).length;
+  const pending = allPeople.filter((person) => !person.follow_up_status || person.follow_up_status === "Pending").length;
+  const assigned = allPeople.filter((person) => person.assigned_to).length;
+
+  directoryStats.innerHTML = `
+    <article class="metric-card"><span class="muted-text">Total People</span><strong>${total}</strong></article>
+    <article class="metric-card"><span class="muted-text">Prayer Needs</span><strong>${prayer}</strong></article>
+    <article class="metric-card"><span class="muted-text">Pending Follow-up</span><strong>${pending}</strong></article>
+    <article class="metric-card"><span class="muted-text">Assigned</span><strong>${assigned}</strong></article>
+  `;
+}
 
 function renderPeople(people) {
   peopleList.innerHTML = people
@@ -108,6 +123,7 @@ initProtectedPage({
         ...personDoc.data(),
       }));
 
+      renderDirectoryStats();
       applyFilters();
     });
   },
