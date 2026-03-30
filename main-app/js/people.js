@@ -1,12 +1,5 @@
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-import { db } from "../../shared/firebase.js";
-import { initProtectedPage, escapeHtml, formatTimestamp, getStatusBadge, populateStatusSelect } from "./auth.js";
+import { supabase } from "../../shared/supabase.js";
+import { initProtectedPage, escapeHtml, formatTimestamp, getStatusBadge, populateStatusSelect, subscribeTables } from "./auth.js";
 
 const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
@@ -15,118 +8,114 @@ const peopleList = document.getElementById("peopleList");
 const peopleEmptyState = document.getElementById("peopleEmptyState");
 const directoryStats = document.getElementById("directoryStats");
 
-let allPeople = [];
+let people = [];
+let currentProfile = null;
 
-function renderDirectoryStats() {
-  const total = allPeople.length;
-  const prayer = allPeople.filter((person) => person.prayer_points).length;
-  const pending = allPeople.filter((person) => !person.follow_up_status || person.follow_up_status === "Pending").length;
-  const assigned = allPeople.filter((person) => person.assigned_to).length;
-
+function renderStats(rows) {
   directoryStats.innerHTML = `
-    <article class="metric-card"><span class="muted-text">Total People</span><strong>${total}</strong></article>
-    <article class="metric-card"><span class="muted-text">Prayer Needs</span><strong>${prayer}</strong></article>
-    <article class="metric-card"><span class="muted-text">Pending Follow-up</span><strong>${pending}</strong></article>
-    <article class="metric-card"><span class="muted-text">Assigned</span><strong>${assigned}</strong></article>
+    <article class="metric-card"><span class="muted-text">Total People</span><strong>${rows.length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Prayer Needs</span><strong>${rows.filter((row) => row.prayer_points).length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Pending Follow-Up</span><strong>${rows.filter((row) => row.status === "not_called").length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Assigned</span><strong>${rows.filter((row) => row.assigned_to).length}</strong></article>
   `;
 }
 
-function renderPeople(people) {
-  peopleList.innerHTML = people
-    .map(({ id, ...person }) => {
-      const prayerCard = person.prayer_points
-        ? `<div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div>`
-        : "";
-
-      return `
-        <article class="card" data-person-id="${id}">
-          <div class="card-topline">
-            <div>
-              <h3>${escapeHtml(person.name || "Unnamed visitor")}</h3>
-              <p class="muted-text">${escapeHtml(person.email || "No email supplied")}</p>
-            </div>
-            ${getStatusBadge(person.follow_up_status || "Pending")}
+function renderPeople(rows) {
+  peopleList.innerHTML = rows
+    .map((person) => `
+      <article class="card" data-person-id="${person.person_id}">
+        <div class="card-topline">
+          <div>
+            <h3>${escapeHtml(person.full_name)}</h3>
+            <p class="muted-text">${escapeHtml(person.email || "No email supplied")}</p>
           </div>
-          <div class="card-meta">
-            <span><strong>Phone:</strong> ${escapeHtml(person.phone || "Not supplied")}</span>
-            <span><strong>Occupation:</strong> ${escapeHtml(person.occupation || "Not supplied")}</span>
-            <span><strong>Assigned to:</strong> ${escapeHtml(person.assigned_to || "Unassigned")}</span>
-            <span><strong>Created:</strong> ${formatTimestamp(person.createdAt || person.timestamp)}</span>
-          </div>
-          ${prayerCard}
-        </article>
-      `;
-    })
+          ${getStatusBadge(person.status)}
+        </div>
+        <div class="card-meta">
+          <span><strong>Cellphone:</strong> ${escapeHtml(person.phone || "Not supplied")}</span>
+          <span><strong>Residence:</strong> ${escapeHtml(person.area_of_residence || "Not supplied")}</span>
+          <span><strong>Assigned to:</strong> ${escapeHtml(person.assigned_name || "Unassigned")}</span>
+          <span><strong>Captured:</strong> ${formatTimestamp(person.created_at)}</span>
+        </div>
+        ${person.prayer_points ? `<div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div>` : ""}
+      </article>
+    `)
     .join("");
 
-  peopleEmptyState.classList.toggle("hidden", people.length > 0);
+  peopleEmptyState.classList.toggle("hidden", rows.length > 0);
 }
 
 function applyFilters() {
-  const keyword = searchInput.value.trim().toLowerCase();
+  const query = searchInput.value.trim().toLowerCase();
   const status = statusFilter.value;
-  const assignmentScope = assignmentFilter.value;
+  const assignment = assignmentFilter.value;
 
-  const filtered = allPeople.filter((person) => {
-    const searchable = [
-      person.name,
+  const visibleRows = people.filter((person) => {
+    const blob = [
+      person.full_name,
       person.email,
       person.phone,
+      person.area_of_residence,
       person.occupation,
-      person.assigned_to,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+      person.assigned_name,
+    ].filter(Boolean).join(" ").toLowerCase();
 
-    const matchesKeyword = !keyword || searchable.includes(keyword);
-    const matchesStatus = !status || (person.follow_up_status || "Pending") === status;
-    const isAssigned = Boolean(person.assigned_to);
+    const matchesSearch = !query || blob.includes(query);
+    const matchesStatus = !status || person.status === status;
     const matchesAssignment =
-      !assignmentScope ||
-      (assignmentScope === "assigned" && isAssigned) ||
-      (assignmentScope === "unassigned" && !isAssigned);
+      !assignment ||
+      (assignment === "assigned" && Boolean(person.assigned_to)) ||
+      (assignment === "unassigned" && !person.assigned_to);
 
-    return matchesKeyword && matchesStatus && matchesAssignment;
+    return matchesSearch && matchesStatus && matchesAssignment;
   });
 
-  renderPeople(filtered);
+  renderStats(visibleRows);
+  renderPeople(visibleRows);
 }
 
-function bindEvents() {
-  [searchInput, statusFilter, assignmentFilter].forEach((element) => {
-    element.addEventListener("input", applyFilters);
-    element.addEventListener("change", applyFilters);
-  });
+async function loadPeople() {
+  let request = supabase.from("people_overview").select("*").order("created_at", { ascending: false });
 
-  peopleList.addEventListener("click", (event) => {
-    const card = event.target.closest("[data-person-id]");
-    if (!card) {
-      return;
-    }
+  if (currentProfile.role === "team") {
+    request = request.eq("assigned_to", currentProfile.id);
+  }
 
-    window.location.href = `person.html?id=${card.dataset.personId}`;
-  });
+  const { data, error } = await request;
+  if (error) {
+    throw error;
+  }
+
+  people = data ?? [];
+  applyFilters();
 }
 
 populateStatusSelect(statusFilter, "", true);
-bindEvents();
+
+[searchInput, statusFilter, assignmentFilter].forEach((element) => {
+  element.addEventListener("input", applyFilters);
+  element.addEventListener("change", applyFilters);
+});
+
+peopleList.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-person-id]");
+  if (!card) {
+    return;
+  }
+
+  window.location.assign(`person.html?id=${card.dataset.personId}`);
+});
 
 initProtectedPage({
-  viewAction: "view_people_directory",
-  onReady: async () => {
-    const peopleQuery = query(collection(db, "people"), orderBy("createdAt", "desc"));
+  onReady: async ({ profile }) => {
+    currentProfile = profile;
+    await loadPeople();
 
-    onSnapshot(peopleQuery, (snapshot) => {
-      allPeople = snapshot.docs.map((personDoc) => ({
-        id: personDoc.id,
-        ...personDoc.data(),
-      }));
-
-      renderDirectoryStats();
-      applyFilters();
+    const channel = subscribeTables(["people", "followups"], loadPeople);
+    window.addEventListener("beforeunload", () => {
+      supabase.removeChannel(channel);
     });
   },
 }).catch((error) => {
-  console.error("Unable to initialise people page", error);
+  console.error("People page failed", error);
 });

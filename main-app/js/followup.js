@@ -1,156 +1,171 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-import { db } from "../../shared/firebase.js";
-import { followUpStatuses, roles } from "../../shared/config.js";
-import { initProtectedPage, escapeHtml, formatTimestamp, getStatusBadge, populateStatusSelect } from "./auth.js";
+import { supabase } from "../../shared/supabase.js";
+import { followUpBoardColumns, statusLabels } from "../../shared/config.js";
+import { escapeHtml, formatTimestamp, getStatusBadge, initProtectedPage, subscribeTables } from "./auth.js";
 import { logActivity } from "./activity.js";
 
-const followupStatusFilter = document.getElementById("followupStatusFilter");
+const boardSearch = document.getElementById("boardSearch");
 const followupAssignmentScope = document.getElementById("followupAssignmentScope");
-const followupList = document.getElementById("followupList");
+const followupBoard = document.getElementById("followupBoard");
 const followupEmptyState = document.getElementById("followupEmptyState");
+const boardStats = document.getElementById("boardStats");
 
 let currentProfile = null;
-let allPeople = [];
+let people = [];
 
-function renderStatusOptions(selectedValue) {
-  return followUpStatuses
-    .map((status) => `<option value="${status}" ${status === selectedValue ? "selected" : ""}>${status}</option>`)
-    .join("");
-}
-
-function getFilteredPeople() {
-  const status = followupStatusFilter.value;
+function currentRows() {
+  const query = boardSearch.value.trim().toLowerCase();
   const scope = followupAssignmentScope.value;
 
-  return allPeople.filter((person) => {
-    const personStatus = person.follow_up_status || "Pending";
-    const matchesStatus = !status || personStatus === status;
-    const assignedToMe = person.assigned_to === currentProfile.email;
-    const isAssigned = Boolean(person.assigned_to);
-    const isLeader = [roles[0], roles[1]].includes(currentProfile.role);
+  return people.filter((person) => {
+    const blob = [
+      person.full_name,
+      person.phone,
+      person.email,
+      person.area_of_residence,
+      person.assigned_name,
+    ].filter(Boolean).join(" ").toLowerCase();
 
+    const matchesSearch = !query || blob.includes(query);
     const matchesScope =
-      (scope === "mine" && assignedToMe) ||
-      (scope === "all" && isLeader) ||
-      (scope === "unassigned" && !isAssigned);
+      (scope === "mine" && person.assigned_to === currentProfile.id) ||
+      (scope === "all" && currentProfile.role !== "team") ||
+      (scope === "unassigned" && !person.assigned_to);
 
-    return matchesStatus && matchesScope;
+    return matchesSearch && matchesScope;
   });
 }
 
-function render() {
-  const people = getFilteredPeople();
+function renderStats(rows) {
+  boardStats.innerHTML = `
+    <article class="metric-card"><span class="muted-text">Visible Cards</span><strong>${rows.length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Unassigned</span><strong>${rows.filter((row) => !row.assigned_to).length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Prayer Needs</span><strong>${rows.filter((row) => row.prayer_points).length}</strong></article>
+  `;
+}
 
-  followupList.innerHTML = people
-    .map((person) => {
-      const prayer = person.prayer_points ? `<div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div>` : "";
+function cardMarkup(person) {
+  return `
+    <article class="kanban-card" draggable="true" data-person-id="${person.person_id}">
+      <div class="card-topline">
+        <strong>${escapeHtml(person.full_name)}</strong>
+        ${getStatusBadge(person.status)}
+      </div>
+      <div class="card-meta">
+        <span>${escapeHtml(person.phone || "No cellphone")}</span>
+        <span>${escapeHtml(person.area_of_residence || "No residence")}</span>
+        <span>${escapeHtml(person.assigned_name || "Unassigned")}</span>
+        <span>${formatTimestamp(person.updated_at || person.created_at)}</span>
+      </div>
+      ${person.prayer_points ? `<div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div>` : ""}
+      <a class="text-link" href="person.html?id=${person.person_id}">Open profile</a>
+    </article>
+  `;
+}
+
+function renderBoard() {
+  const rows = currentRows();
+  renderStats(rows);
+
+  followupBoard.innerHTML = followUpBoardColumns
+    .map((status) => {
+      const columnRows = rows.filter((person) => person.status === status);
       return `
-        <article class="card">
-          <div class="card-topline">
-            <div>
-              <h3>${escapeHtml(person.name || "Unnamed visitor")}</h3>
-              <p class="muted-text">${escapeHtml(person.phone || "No phone")} | ${escapeHtml(person.email || "No email")}</p>
-            </div>
-            ${getStatusBadge(person.follow_up_status || "Pending")}
+        <section class="kanban-column" data-status="${status}">
+          <div class="kanban-column-header">
+            <h2>${escapeHtml(statusLabels[status])}</h2>
+            <span>${columnRows.length}</span>
           </div>
-          <div class="card-meta">
-            <span><strong>Assigned to:</strong> ${escapeHtml(person.assigned_to || "Unassigned")}</span>
-            <span><strong>Created:</strong> ${formatTimestamp(person.createdAt || person.timestamp)}</span>
+          <div class="kanban-dropzone">
+            ${columnRows.map(cardMarkup).join("")}
           </div>
-          ${prayer}
-          <div class="quick-editor" data-person-id="${person.id}">
-            <label>
-              Status
-              <select data-role="status">${renderStatusOptions(person.follow_up_status || "Pending")}</select>
-            </label>
-            <label class="full-width">
-              Note
-              <textarea data-role="note" rows="3" placeholder="Add a quick follow-up note"></textarea>
-            </label>
-            <div class="card-actions">
-              <a class="ghost-action" href="person.html?id=${person.id}">Open profile</a>
-              <button class="secondary-action" type="button" data-action="save">Save follow-up</button>
-            </div>
-          </div>
-        </article>
+        </section>
       `;
     })
     .join("");
 
-  followupEmptyState.classList.toggle("hidden", people.length > 0);
+  followupEmptyState.classList.toggle("hidden", rows.length > 0);
 }
 
-function bindEvents() {
-  followupStatusFilter.addEventListener("change", render);
-  followupAssignmentScope.addEventListener("change", render);
+async function loadBoard() {
+  let request = supabase.from("people_overview").select("*").order("updated_at", { ascending: false });
+  if (currentProfile.role === "team") {
+    request = request.eq("assigned_to", currentProfile.id);
+  }
 
-  followupList.addEventListener("click", async (event) => {
-    const saveButton = event.target.closest("[data-action='save']");
-    if (!saveButton) {
-      return;
-    }
+  const { data, error } = await request;
+  if (error) {
+    throw error;
+  }
 
-    const editor = saveButton.closest("[data-person-id]");
-    const personId = editor.dataset.personId;
-    const nextStatus = editor.querySelector("[data-role='status']").value;
-    const note = editor.querySelector("[data-role='note']").value.trim();
-
-    await updateDoc(doc(db, "people", personId), {
-      follow_up_status: nextStatus,
-      updatedAt: serverTimestamp(),
-      updatedBy: currentProfile.email,
-    });
-
-    if (note) {
-      await addDoc(collection(db, "people", personId, "notes"), {
-        text: note,
-        createdBy: currentProfile.email,
-        timestamp: serverTimestamp(),
-      });
-    }
-
-    await logActivity(currentProfile, "update_follow_up", personId, {
-      summary: note,
-      nextStatus,
-    });
-
-    editor.querySelector("[data-role='note']").value = "";
-  });
+  people = data ?? [];
+  renderBoard();
 }
 
-populateStatusSelect(followupStatusFilter, "", true);
-bindEvents();
+async function updateStatus(personId, nextStatus) {
+  const payload = {
+    status: nextStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (nextStatus !== "not_called") {
+    payload.last_contacted = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from("followups")
+    .update(payload)
+    .eq("person_id", personId);
+
+  if (!error) {
+    await logActivity("status_changed", personId, { summary: `Moved to ${statusLabels[nextStatus]}` });
+  }
+}
+
+boardSearch.addEventListener("input", renderBoard);
+followupAssignmentScope.addEventListener("change", renderBoard);
+
+followupBoard.addEventListener("dragstart", (event) => {
+  const card = event.target.closest("[data-person-id]");
+  if (!card) {
+    return;
+  }
+
+  event.dataTransfer.setData("text/plain", card.dataset.personId);
+});
+
+followupBoard.addEventListener("dragover", (event) => {
+  if (event.target.closest(".kanban-dropzone")) {
+    event.preventDefault();
+  }
+});
+
+followupBoard.addEventListener("drop", async (event) => {
+  const column = event.target.closest(".kanban-column");
+  if (!column) {
+    return;
+  }
+
+  event.preventDefault();
+  const personId = event.dataTransfer.getData("text/plain");
+  await updateStatus(personId, column.dataset.status);
+  await loadBoard();
+});
 
 initProtectedPage({
-  viewAction: "view_followup_workspace",
   onReady: async ({ profile }) => {
     currentProfile = profile;
 
-    if (![roles[0], roles[1]].includes(profile.role)) {
-      followupAssignmentScope.innerHTML = `
-        <option value="mine">My queue</option>
-      `;
+    if (profile.role === "team") {
+      followupAssignmentScope.innerHTML = `<option value="mine">My queue</option>`;
     }
 
-    onSnapshot(query(collection(db, "people"), orderBy("createdAt", "desc")), (snapshot) => {
-      allPeople = snapshot.docs.map((personDoc) => ({
-        id: personDoc.id,
-        ...personDoc.data(),
-      }));
+    await loadBoard();
 
-      render();
+    const channel = subscribeTables(["followups", "people"], loadBoard);
+    window.addEventListener("beforeunload", () => {
+      supabase.removeChannel(channel);
     });
   },
 }).catch((error) => {
-  console.error("Unable to initialise follow-up page", error);
+  console.error("Follow-up board failed", error);
 });

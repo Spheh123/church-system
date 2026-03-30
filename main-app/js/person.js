@@ -1,23 +1,9 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-  updateDoc,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { supabase } from "../../shared/supabase.js";
+import { personFieldLabels, personFieldOrder } from "../../shared/config.js";
+import { clearMessage, escapeHtml, formatTimestamp, getStatusBadge, initProtectedPage, populateStatusSelect, setMessage, subscribeTables } from "./auth.js";
+import { logActivity, logActivityOnce } from "./activity.js";
 
-import { db } from "../../shared/firebase.js";
-import { roles } from "../../shared/config.js";
-import { initProtectedPage, escapeHtml, formatTimestamp, getStatusBadge, populateStatusSelect, setMessage, clearMessage } from "./auth.js";
-import { logActivity } from "./activity.js";
-
-const params = new URLSearchParams(window.location.search);
-const personId = params.get("id");
-
+const personId = new URLSearchParams(window.location.search).get("id");
 const personName = document.getElementById("personName");
 const personMeta = document.getElementById("personMeta");
 const profileFields = document.getElementById("profileFields");
@@ -34,243 +20,187 @@ const profileStatusBadgeContainer = document.getElementById("profileStatusBadgeC
 const openWhatsAppLink = document.getElementById("openWhatsAppLink");
 const updateSummary = document.getElementById("updateSummary");
 
-let currentPerson = null;
 let currentProfile = null;
-let hasLoggedView = false;
-
-function orderedFields(person) {
-  const preferredOrder = [
-    "timestamp",
-    "name",
-    "email",
-    "phone",
-    "dob",
-    "gender",
-    "occupation",
-    "marital_status",
-    "service_feedback",
-    "nsppdian",
-    "next_sunday",
-    "membership_interest",
-    "whatsapp_group",
-    "prayer_points",
-    "invite",
-    "invite_details",
-    "createdAt",
-    "follow_up_status",
-    "assigned_to",
-    "updatedAt",
-    "updatedBy",
-  ];
-
-  const remaining = Object.keys(person).filter((key) => !preferredOrder.includes(key)).sort();
-  return [...preferredOrder.filter((key) => key in person), ...remaining];
-}
+let currentPerson = null;
 
 function renderProfile(person) {
   currentPerson = person;
-  personName.textContent = person.name || "Unnamed visitor";
-  personMeta.textContent = `${person.email || "No email"} | ${person.phone || "No phone"} | Created ${formatTimestamp(person.createdAt || person.timestamp)}`;
-  profileStatusBadgeContainer.innerHTML = getStatusBadge(person.follow_up_status || "Pending");
+  personName.textContent = person.full_name;
+  personMeta.textContent = `${person.email || "No email"} | ${person.phone || "No cellphone"} | ${person.area_of_residence || "No residence"}`;
+  profileStatusBadgeContainer.innerHTML = getStatusBadge(person.status);
   prayerPointsCard.textContent = person.prayer_points || "No prayer points supplied.";
 
-  const phone = (person.phone || "").replace(/\s+/g, "");
-  openWhatsAppLink.href = phone ? `https://wa.me/${phone.replace(/^\+/, "")}` : "#";
-  openWhatsAppLink.classList.toggle("hidden", !phone);
+  const whatsappNumber = (person.phone || "").replace(/\D/g, "");
+  openWhatsAppLink.href = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#";
+  openWhatsAppLink.classList.toggle("hidden", !whatsappNumber);
 
-  profileFields.innerHTML = orderedFields(person)
-    .map((field) => {
-      const value = person[field];
-      const formattedValue = typeof value === "object" && value?.toDate ? formatTimestamp(value) : value || "Not supplied";
-      return `
-        <div class="detail-item">
-          <span>${escapeHtml(field)}</span>
-          <strong>${escapeHtml(formattedValue)}</strong>
-        </div>
-      `;
-    })
+  profileFields.innerHTML = personFieldOrder
+    .map((field) => `
+      <div class="detail-item">
+        <span>${escapeHtml(personFieldLabels[field] || field)}</span>
+        <strong>${escapeHtml(person[field] || "Not supplied")}</strong>
+      </div>
+    `)
     .join("");
 
-  followUpStatusSelect.value = person.follow_up_status || "Pending";
+  followUpStatusSelect.value = person.status || "not_called";
 }
 
-function renderNotes(snapshot) {
-  notesList.innerHTML = snapshot.docs.length
-    ? snapshot.docs
-        .map((noteDoc) => {
-          const note = noteDoc.data();
-          return `
-            <article class="note-item">
-              <div class="timeline-item">
-                <strong>${escapeHtml(note.createdBy || "Unknown user")}</strong>
-                <span class="muted-text">${formatTimestamp(note.timestamp)}</span>
-              </div>
-              <div>${escapeHtml(note.text || "")}</div>
-            </article>
-          `;
-        })
-        .join("")
+async function loadPerson() {
+  const { data, error } = await supabase.from("people_overview").select("*").eq("person_id", personId).single();
+  if (error) {
+    throw error;
+  }
+
+  renderProfile(data);
+}
+
+async function loadUsers() {
+  const { data, error } = await supabase.from("users").select("id, name, email, role").order("name");
+  if (error) {
+    throw error;
+  }
+
+  assignedToSelect.innerHTML = [`<option value="">Unassigned</option>`, ...(data ?? []).map((user) => `
+    <option value="${user.id}" ${user.id === currentPerson?.assigned_to ? "selected" : ""}>${escapeHtml(user.name)} (${escapeHtml(user.role)})</option>
+  `)].join("");
+
+  if (currentProfile.role === "team") {
+    assignedToSelect.disabled = true;
+  }
+}
+
+async function loadNotes() {
+  const { data, error } = await supabase
+    .from("followup_notes")
+    .select("*, users(name, email)")
+    .eq("person_id", personId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  notesList.innerHTML = (data ?? []).length
+    ? data.map((note) => `
+      <article class="note-item">
+        <div class="timeline-item">
+          <strong>${escapeHtml(note.users?.name || note.users?.email || "Unknown user")}</strong>
+          <span class="muted-text">${formatTimestamp(note.created_at)}</span>
+        </div>
+        <div>${escapeHtml(note.note)}</div>
+      </article>
+    `).join("")
     : `<div class="empty-state">No notes added yet.</div>`;
 }
 
-function renderActivity(snapshot) {
-  const rows = snapshot.docs
-    .filter((logDoc) => logDoc.data().target_person_id === personId)
-    .sort((a, b) => {
-      const left = a.data().timestamp?.toMillis?.() ?? 0;
-      const right = b.data().timestamp?.toMillis?.() ?? 0;
-      return right - left;
-    })
-    .slice(0, 25);
+async function loadActivity() {
+  const { data, error } = await supabase
+    .from("activity_logs")
+    .select("*, users(name, email)")
+    .eq("person_id", personId)
+    .order("timestamp", { ascending: false });
 
-  personActivityLog.innerHTML = rows.length
-    ? rows
-        .map((logDoc) => {
-          const log = logDoc.data();
-          return `
-            <article class="timeline-item">
-              <div class="timeline-item">
-                <strong>${escapeHtml(log.user_email || "Unknown user")}</strong>
-                <span class="muted-text">${formatTimestamp(log.timestamp)}</span>
-              </div>
-              <div>${escapeHtml(log.action)}</div>
-              <div class="muted-text">${escapeHtml(log.details?.summary || "")}</div>
-            </article>
-          `;
-        })
-        .join("")
-    : `<div class="empty-state">No activity recorded for this person yet.</div>`;
-}
+  if (error) {
+    throw error;
+  }
 
-function bindForms() {
-  personUpdateForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (!currentPerson || !currentProfile) {
-      return;
-    }
-
-    clearMessage(personUpdateMessage);
-
-    const nextStatus = followUpStatusSelect.value;
-    const nextAssignee = assignedToSelect.value;
-    const summary = updateSummary.value.trim();
-    const changes = [];
-    const payload = {
-      follow_up_status: nextStatus,
-      updatedAt: serverTimestamp(),
-      updatedBy: currentProfile.email,
-    };
-
-    if (nextStatus !== (currentPerson.follow_up_status || "Pending")) {
-      changes.push(`Status changed to ${nextStatus}`);
-    }
-
-    if ([roles[0], roles[1]].includes(currentProfile.role) && nextAssignee !== (currentPerson.assigned_to || "")) {
-      payload.assigned_to = nextAssignee || "";
-      changes.push(`Assigned to ${nextAssignee || "no one"}`);
-    }
-
-    if (!changes.length && !summary) {
-      setMessage(personUpdateMessage, "No changes detected.", "error");
-      return;
-    }
-
-    try {
-      await updateDoc(doc(db, "people", personId), payload);
-
-      if (summary) {
-        await addDoc(collection(db, "people", personId, "notes"), {
-          text: summary,
-          createdBy: currentProfile.email,
-          timestamp: serverTimestamp(),
-        });
-      }
-
-      await logActivity(currentProfile, "edit_record", personId, { summary, changes });
-
-      if (payload.assigned_to !== undefined) {
-        await logActivity(currentProfile, "assign_follow_up", personId, {
-          assigned_to: payload.assigned_to,
-          summary,
-        });
-      }
-
-      updateSummary.value = "";
-      setMessage(personUpdateMessage, "Person record updated successfully.", "success");
-    } catch (error) {
-      console.error("Failed to update person", error);
-      setMessage(personUpdateMessage, error.message, "error");
-    }
-  });
-
-  noteForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (!noteText.value.trim()) {
-      return;
-    }
-
-    await addDoc(collection(db, "people", personId, "notes"), {
-      text: noteText.value.trim(),
-      createdBy: currentProfile.email,
-      timestamp: serverTimestamp(),
-    });
-
-    await logActivity(currentProfile, "add_note", personId, { summary: noteText.value.trim() });
-    noteText.value = "";
-  });
+  personActivityLog.innerHTML = (data ?? []).length
+    ? data.map((item) => `
+      <article class="timeline-item">
+        <div class="timeline-item">
+          <strong>${escapeHtml(item.users?.name || item.users?.email || "Unknown user")}</strong>
+          <span class="muted-text">${formatTimestamp(item.timestamp)}</span>
+        </div>
+        <div>${escapeHtml(item.action)}</div>
+        <div class="muted-text">${escapeHtml(item.details?.summary || "")}</div>
+      </article>
+    `).join("")
+    : `<div class="empty-state">No activity recorded yet.</div>`;
 }
 
 populateStatusSelect(followUpStatusSelect);
-bindForms();
+
+personUpdateForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearMessage(personUpdateMessage);
+
+  const updates = {
+    status: followUpStatusSelect.value,
+    notes: updateSummary.value.trim() || currentPerson.followup_notes || "",
+    updated_at: new Date().toISOString(),
+  };
+
+  if (followUpStatusSelect.value !== "not_called") {
+    updates.last_contacted = new Date().toISOString();
+  }
+
+  if (currentProfile.role !== "team") {
+    updates.assigned_to = assignedToSelect.value || null;
+  }
+
+  const { error } = await supabase.from("followups").update(updates).eq("person_id", personId);
+  if (error) {
+    setMessage(personUpdateMessage, error.message, "error");
+    return;
+  }
+
+  if (updateSummary.value.trim()) {
+    await supabase.from("followup_notes").insert({
+      person_id: personId,
+      user_id: currentProfile.id,
+      note: updateSummary.value.trim(),
+    });
+  }
+
+  await logActivity("status_changed", personId, { summary: updateSummary.value.trim() || "Updated follow-up details" });
+  updateSummary.value = "";
+  setMessage(personUpdateMessage, "Follow-up updated successfully.", "success");
+  await Promise.all([loadPerson(), loadNotes(), loadActivity()]);
+});
+
+noteForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!noteText.value.trim()) {
+    return;
+  }
+
+  const { error } = await supabase.from("followup_notes").insert({
+    person_id: personId,
+    user_id: currentProfile.id,
+    note: noteText.value.trim(),
+  });
+
+  if (!error) {
+    await logActivity("note_added", personId, { summary: noteText.value.trim() });
+    noteText.value = "";
+    await Promise.all([loadNotes(), loadActivity()]);
+  }
+});
 
 initProtectedPage({
-  viewAction: "view_person_profile",
   onReady: async ({ profile }) => {
     currentProfile = profile;
 
     if (!personId) {
-      personName.textContent = "Missing person id";
-      personMeta.textContent = "Open a record from the People page.";
-      personUpdateForm.classList.add("hidden");
-      noteForm.classList.add("hidden");
+      personName.textContent = "Person not found";
+      personMeta.textContent = "Open this page from the people directory.";
       return;
     }
 
-    onSnapshot(query(collection(db, "users"), orderBy("name", "asc")), (snapshot) => {
-      assignedToSelect.innerHTML = [
-        `<option value="">Unassigned</option>`,
-        ...snapshot.docs.map((userDoc) => {
-          const user = userDoc.data();
-          const selected = user.email === (currentPerson?.assigned_to || "") ? "selected" : "";
-          return `<option value="${escapeHtml(user.email)}" ${selected}>${escapeHtml(user.name)} (${escapeHtml(user.role)})</option>`;
-        }),
-      ].join("");
+    await Promise.all([loadPerson(), loadUsers(), loadNotes(), loadActivity()]);
+    await logActivityOnce(`view-person-${personId}`, "viewed_record", personId, {
+      summary: "Opened the person profile",
     });
 
-    onSnapshot(doc(db, "people", personId), async (personSnapshot) => {
-      if (!personSnapshot.exists()) {
-        personName.textContent = "Person not found";
-        personMeta.textContent = "This record may have been deleted.";
-        return;
-      }
-
-      const person = { id: personSnapshot.id, ...personSnapshot.data() };
-      renderProfile(person);
-
-      if (!hasLoggedView) {
-        hasLoggedView = true;
-        await logActivity(profile, "view_record", personId, { name: person.name || "" });
-      }
+    const channel = subscribeTables(["people", "followups", "followup_notes", "activity_logs"], async () => {
+      await Promise.all([loadPerson(), loadNotes(), loadActivity()]);
     });
 
-    onSnapshot(query(collection(db, "people", personId, "notes"), orderBy("timestamp", "desc")), renderNotes);
-    onSnapshot(
-      query(collection(db, "activity_logs"), where("target_person_id", "==", personId), orderBy("timestamp", "desc")),
-      renderActivity,
-    );
+    window.addEventListener("beforeunload", () => {
+      supabase.removeChannel(channel);
+    });
   },
 }).catch((error) => {
-  console.error("Unable to initialise person page", error);
+  console.error("Person page failed", error);
 });

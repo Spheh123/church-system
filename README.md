@@ -1,42 +1,105 @@
-# Streams of Joy Johannesburg Church Management System
+# Streams of Joy Johannesburg Follow-Up System
 
-Production-ready church operations frontend on Netlify, backed by Firebase Authentication, Firestore, and Firebase Functions.
+Production-ready church follow-up management system built with:
 
-## What is included
+- Frontend: HTML, CSS, modular JavaScript
+- Backend: Supabase Auth, Postgres, Realtime
+- Hosting: Netlify
+- Intake source: Google Form -> Apps Script -> Netlify Function -> Supabase
 
-- Role-based login for `Admin`, `Pastor`, and `Follow-up team`
-- Manual user provisioning through Firebase callable functions
-- Real-time people directory, follow-up workspace, and pastor dashboard
-- Person profile pages with full Firestore field rendering and notes
-- Audit logging in `activity_logs`
-- Manual and scheduled Google Sheets export flow
-- Firestore security rules and indexes
+## Core architecture
 
-## Folder structure
+1. Google Form collects the visitor response.
+2. Google Sheets / Apps Script sends the normalized row to `/.netlify/functions/form-intake`.
+3. Netlify function writes the person into Supabase `people`.
+4. A database trigger creates the matching `followups` row automatically.
+5. The frontend reads the joined `people_overview` view and updates live through Supabase Realtime.
 
-- `shared/` shared Firebase app configuration
-- `main-app/` static Netlify frontend
-- `functions/` privileged Firebase Functions for user creation, password resets, and report exports
-- `apps-script/` Google Apps Script webhook example for Sheets export
+## Main folders
 
-## Deployment
+- `main-app/` static frontend pages and JS modules
+- `shared/` shared Supabase client and app configuration
+- `netlify/functions/` secure serverless functions for admin user creation and form intake
+- `supabase/schema.sql` database tables, view, triggers, and RLS
+- `apps-script/google-form-sync.gs` Apps Script template for Google Form syncing
 
-1. Deploy the static app to Netlify with the repo root as the publish directory.
-2. Deploy Firebase Functions from `functions/`.
-3. Set the Firebase Functions secret:
-   - `firebase functions:secrets:set REPORT_WEBHOOK_URL`
-4. Publish the Apps Script web app and paste its public URL into that secret.
-5. Deploy Firestore rules and indexes:
-   - `firebase deploy --only firestore`
+## Database objects
 
-## Required Firebase collections
+Main tables:
 
-- `people` (already exists and remains unchanged as the intake source)
 - `users`
+- `people`
+- `followups`
+- `followup_notes`
 - `activity_logs`
-- `report_exports`
-- `people/{id}/notes`
 
-## Important operating note
+Joined view:
 
-The app disables public signup in the UI and routes all user creation/reset flows through Firebase Functions. If you also want to hard-block all password self-service endpoints beyond the app UI, add Firebase Authentication blocking controls in your Firebase/Auth platform configuration.
+- `people_overview`
+
+## Supabase setup
+
+1. Create a Supabase project.
+2. Open SQL Editor and run [schema.sql](/C:/Users/DELL/Downloads/My%20webistes/Streams-Of-Joy-Johannesburg/church-system/supabase/schema.sql).
+3. In Authentication:
+   - enable Email auth
+   - disable public signup
+4. Create your first admin user in Supabase Auth manually.
+5. Insert the same user into `public.users` with role `admin`.
+
+## Frontend config
+
+Update [config.js](/C:/Users/DELL/Downloads/My%20webistes/Streams-Of-Joy-Johannesburg/church-system/shared/config.js):
+
+- `supabaseConfig.url`
+- `supabaseConfig.anonKey`
+
+## Netlify environment variables
+
+Add these in Netlify:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `FORM_WEBHOOK_SECRET`
+- `GOOGLE_SHEETS_WEBHOOK_URL` (optional for report push)
+
+## Admin user creation
+
+The dashboard uses `/.netlify/functions/admin-create-user` so only admins can create new users. The function:
+
+- verifies the signed-in admin token
+- creates a Supabase Auth user
+- inserts the matching `public.users` profile
+- returns a temporary password
+
+The `users` table also tracks:
+
+- `created_by`
+- `last_active_at`
+- `last_login_at`
+
+Presence is updated from the frontend with a secure Supabase RPC so the dashboard can show who was active most recently.
+
+## Google Form syncing
+
+1. Connect the Google Form to a Google Sheet.
+2. Open Apps Script on that sheet.
+3. Paste [google-form-sync.gs](/C:/Users/DELL/Downloads/My%20webistes/Streams-Of-Joy-Johannesburg/church-system/apps-script/google-form-sync.gs).
+4. Set script property `FORM_WEBHOOK_SECRET`.
+5. Replace `YOUR-NETLIFY-SITE` with your live Netlify domain.
+6. Create an installable trigger for `onFormSubmit`.
+
+## Netlify deployment
+
+1. Push the project to GitHub.
+2. Connect the repo to Netlify.
+3. Set publish directory to the repo root.
+4. Netlify will use [netlify.toml](/C:/Users/DELL/Downloads/My%20webistes/Streams-Of-Joy-Johannesburg/church-system/netlify.toml) for redirects and function path.
+5. Deploy.
+
+## Reporting
+
+- Reports page filters by date, status, and assignee.
+- CSV export runs in the browser.
+- Optional Google Sheets push uses `/.netlify/functions/form-intake` in `report_export` mode.

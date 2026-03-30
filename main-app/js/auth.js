@@ -1,52 +1,57 @@
-import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
-
-import { auth, db, functions } from "../../shared/firebase.js";
+import { supabase } from "../../shared/supabase.js";
 import {
   appConfig,
+  defaultRouteByRole,
+  followUpStatuses,
   navItems,
   roles,
-  followUpStatuses,
+  statusLabels,
   statusToneMap,
-  defaultRouteByRole,
 } from "../../shared/config.js";
-import { startActivitySession, finishActivitySession, logActivity } from "./activity.js";
+import { recordLogin, recordLogout, setActivityProfile, touchPresence } from "./activity.js";
 
-let currentAuthUser = null;
-let currentUserProfile = null;
-let heartbeatTimer = null;
-let unloadBound = false;
-let authLoadingTimeout = null;
+let currentSession = null;
+let currentProfile = null;
+let heartbeatHandle = null;
+
+function currentFileName() {
+  return window.location.pathname.split("/").pop() || "index.html";
+}
 
 function navigateTo(target) {
-  const currentPath = window.location.pathname.split("/").pop() || "index.html";
-  if (currentPath === target) {
+  if (currentFileName() === target) {
     return;
   }
 
   window.location.assign(target);
 }
 
-function stopAuthLoading() {
+function startLoading() {
+  document.body.classList.add("auth-loading");
+}
+
+function stopLoading() {
   document.body.classList.remove("auth-loading");
-  if (authLoadingTimeout) {
-    window.clearTimeout(authLoadingTimeout);
-    authLoadingTimeout = null;
+}
+
+function stopPresenceHeartbeat() {
+  if (heartbeatHandle) {
+    window.clearInterval(heartbeatHandle);
+    heartbeatHandle = null;
   }
 }
 
-function showAuthProblem(message) {
-  stopAuthLoading();
+function startPresenceHeartbeat() {
+  stopPresenceHeartbeat();
+  heartbeatHandle = window.setInterval(() => {
+    touchPresence().catch((error) => {
+      console.warn("Presence heartbeat failed", error);
+    });
+  }, appConfig.sessionHeartbeatMs);
+}
+
+function showProblem(message) {
+  stopLoading();
 
   const shell = document.getElementById("appShell");
   if (!shell) {
@@ -56,38 +61,103 @@ function showAuthProblem(message) {
   shell.innerHTML = `
     <main class="page-content">
       <section class="panel auth-problem">
-        <span class="eyebrow">Access Check</span>
+        <span class="eyebrow">Workspace Check</span>
         <h1>We could not finish loading your workspace</h1>
         <p>${escapeHtml(message)}</p>
         <div class="card-actions">
-          <button id="forceReturnLogin" class="secondary-action" type="button">Return to login</button>
-          <button id="retryCurrentPage" class="ghost-action" type="button">Retry this page</button>
+          <button id="backToLogin" class="secondary-action" type="button">Return to login</button>
+          <button id="reloadPage" class="ghost-action" type="button">Reload page</button>
         </div>
       </section>
     </main>
   `;
 
-  document.getElementById("forceReturnLogin")?.addEventListener("click", async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.warn("Sign out during recovery failed", error);
-    }
-
+  document.getElementById("backToLogin")?.addEventListener("click", async () => {
+    await recordLogout();
+    await supabase.auth.signOut();
     navigateTo("login.html");
   });
 
-  document.getElementById("retryCurrentPage")?.addEventListener("click", () => {
+  document.getElementById("reloadPage")?.addEventListener("click", () => {
     window.location.reload();
   });
 }
 
-function getLoginPage() {
-  return window.location.pathname.endsWith("/login.html");
+async function getProfile(userId) {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
-function getIndexPage() {
-  return window.location.pathname.endsWith("/index.html") || window.location.pathname === "/main-app/";
+function routeForRole(role) {
+  return defaultRouteByRole[role] ?? "people.html";
+}
+
+function renderShell(profile) {
+  const shell = document.getElementById("appShell");
+
+  if (!shell || shell.dataset.enhanced === "true") {
+    return;
+  }
+
+  const pageTitle = shell.dataset.pageTitle ?? appConfig.appName;
+  const activeNav = shell.dataset.nav ?? "";
+  const existingContent = shell.innerHTML;
+  const navMarkup = navItems
+    .filter((item) => item.roles.includes(profile.role))
+    .map((item) => {
+      const activeClass = item.key === activeNav ? "active" : "";
+      return `<a class="nav-link ${activeClass}" href="${item.href}">${item.label}</a>`;
+    })
+    .join("");
+
+  shell.innerHTML = `
+    <aside class="sidebar">
+      <div class="brand-block">
+        <span class="eyebrow">Church Follow-Up</span>
+        <h2>${escapeHtml(appConfig.appName)}</h2>
+        <p>Built for stable visitor care, reporting, and accountability on Supabase.</p>
+      </div>
+
+      <nav class="sidebar-nav">${navMarkup}</nav>
+
+      <div class="sidebar-footer">
+        <strong>${escapeHtml(profile.name || profile.email)}</strong>
+        <span>${escapeHtml(profile.role)}</span>
+        <span class="muted-text">${escapeHtml(profile.email)}</span>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <div>
+          <span class="eyebrow">Operations Workspace</span>
+          <h1>${escapeHtml(pageTitle)}</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="logoutButton" class="ghost-action" type="button">Logout</button>
+        </div>
+      </header>
+      ${existingContent}
+    </div>
+  `;
+
+  shell.dataset.enhanced = "true";
+  shell.classList.add("shell-ready");
+
+  document.getElementById("logoutButton")?.addEventListener("click", async () => {
+    await recordLogout();
+    await supabase.auth.signOut();
+    navigateTo("login.html");
+  });
 }
 
 export function escapeHtml(value = "") {
@@ -100,9 +170,12 @@ export function escapeHtml(value = "") {
 }
 
 export function formatTimestamp(value) {
-  const date = value?.toDate?.() ?? (value instanceof Date ? value : value ? new Date(value) : null);
+  if (!value) {
+    return "Not available";
+  }
 
-  if (!date || Number.isNaN(date.getTime())) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
     return "Not available";
   }
 
@@ -122,7 +195,9 @@ export function setMessage(element, message, type = "info") {
 
   if (type === "success") {
     element.classList.add("success");
-  } else if (type === "error") {
+  }
+
+  if (type === "error") {
     element.classList.add("error");
   }
 }
@@ -137,12 +212,13 @@ export function clearMessage(element) {
   element.classList.remove("success", "error");
 }
 
-export function getStatusBadge(status = "Pending") {
+export function getStatusBadge(status = "not_called") {
   const tone = statusToneMap[status] ?? "info";
-  return `<span class="status-badge status-${tone}">${escapeHtml(status)}</span>`;
+  const label = statusLabels[status] ?? status;
+  return `<span class="status-badge status-${tone}">${escapeHtml(label)}</span>`;
 }
 
-export function populateRoleSelect(selectElement, selectedValue = "Follow-up team") {
+export function populateRoleSelect(selectElement, selectedValue = "team") {
   if (!selectElement) {
     return;
   }
@@ -152,267 +228,113 @@ export function populateRoleSelect(selectElement, selectedValue = "Follow-up tea
     .join("");
 }
 
-export function populateStatusSelect(selectElement, selectedValue = "Pending", includeAllOption = false) {
+export function populateStatusSelect(selectElement, selectedValue = "not_called", includeAllOption = false) {
   if (!selectElement) {
     return;
   }
 
-  const baseOptions = includeAllOption ? [`<option value="">All statuses</option>`] : [];
-  const statusOptions = followUpStatuses.map(
-    (status) => `<option value="${status}" ${status === selectedValue ? "selected" : ""}>${status}</option>`,
-  );
+  const options = [
+    includeAllOption ? `<option value="">All statuses</option>` : "",
+    ...followUpStatuses.map(
+      (status) => `<option value="${status}" ${status === selectedValue ? "selected" : ""}>${statusLabels[status]}</option>`,
+    ),
+  ].filter(Boolean);
 
-  selectElement.innerHTML = [...baseOptions, ...statusOptions].join("");
+  selectElement.innerHTML = options.join("");
 }
 
-async function fetchUserProfile(uid) {
-  const userRef = doc(db, "users", uid);
-  const snapshot = await getDoc(userRef);
-  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+export function getCurrentProfile() {
+  return currentProfile;
 }
 
-function routeForRole(role) {
-  return defaultRouteByRole[role] ?? "people.html";
+export function getCurrentSession() {
+  return currentSession;
 }
 
-function renderShell(profile) {
-  const shell = document.getElementById("appShell");
+export function subscribeTables(tables, callback) {
+  const channel = supabase.channel(`live-${tables.join("-")}-${Date.now()}`);
 
-  if (!shell || shell.dataset.enhanced === "true") {
-    return;
-  }
+  tables.forEach((table) => {
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table },
+      () => callback(),
+    );
+  });
 
-  const pageTitle = shell.dataset.pageTitle ?? appConfig.appName;
-  const activeNav = shell.dataset.nav ?? "";
-  const existingContent = shell.innerHTML;
-  const visibleNav = navItems
-    .filter((item) => item.roles.includes(profile.role))
-    .map((item) => {
-      const activeClass = item.key === activeNav ? "active" : "";
-      return `<a class="nav-link ${activeClass}" href="${item.href}">${item.label}</a>`;
-    })
-    .join("");
-
-  shell.innerHTML = `
-    <aside class="sidebar">
-      <div class="brand-block">
-        <span class="eyebrow">Secure Access</span>
-        <h2>${escapeHtml(appConfig.appName)}</h2>
-        <p>Extending the existing Firestore-driven visitor system without touching the intake pipeline.</p>
-      </div>
-
-      <nav class="sidebar-nav">${visibleNav}</nav>
-
-      <div class="sidebar-footer">
-        <strong>${escapeHtml(profile.name ?? profile.email)}</strong>
-        <span>${escapeHtml(profile.role)}</span>
-        <span id="lastActiveIndicator" class="muted-text">Last active: syncing...</span>
-      </div>
-    </aside>
-
-    <div class="app-main">
-      <header class="topbar">
-        <div>
-          <span class="eyebrow">Operational Workspace</span>
-          <h1>${escapeHtml(pageTitle)}</h1>
-        </div>
-        <div class="topbar-actions">
-          <button id="logoutButton" class="ghost-action">Logout</button>
-        </div>
-      </header>
-
-      ${existingContent}
-    </div>
-  `;
-
-  shell.dataset.enhanced = "true";
-  shell.classList.add("shell-ready");
+  channel.subscribe();
+  return channel;
 }
 
-function bindLogout(profile) {
-  const logoutButton = document.getElementById("logoutButton");
+export async function initProtectedPage({ allowedRoles = roles, onReady } = {}) {
+  startLoading();
 
-  if (!logoutButton || logoutButton.dataset.bound === "true") {
-    return;
-  }
-
-  logoutButton.dataset.bound = "true";
-  logoutButton.addEventListener("click", async () => {
-    logoutButton.disabled = true;
-
-    try {
-      await finishActivitySession(profile, "manual-logout");
-      await signOut(auth);
-      navigateTo("login.html");
-    } catch (error) {
-      console.error("Logout failed", error);
-      logoutButton.disabled = false;
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw sessionError;
     }
-  });
-}
 
-async function updateLastActive(profile) {
-  await updateDoc(doc(db, "users", profile.id), {
-    lastActive: serverTimestamp(),
-  });
+    if (!session) {
+      navigateTo("login.html");
+      return;
+    }
 
-  const indicator = document.getElementById("lastActiveIndicator");
-  if (indicator) {
-    indicator.textContent = `Last active: ${formatTimestamp(new Date())}`;
+    const profile = await getProfile(session.user.id);
+
+    currentSession = session;
+    currentProfile = profile;
+    setActivityProfile(profile);
+    await recordLogin();
+    startPresenceHeartbeat();
+
+    if (!allowedRoles.includes(profile.role)) {
+      navigateTo(routeForRole(profile.role));
+      return;
+    }
+
+    renderShell(profile);
+    stopLoading();
+
+    if (typeof onReady === "function") {
+      await onReady({ session, profile });
+    }
+  } catch (error) {
+    console.error("Protected page failed", error);
+    stopPresenceHeartbeat();
+    showProblem(error.message || "The workspace could not be loaded.");
   }
-}
-
-function startHeartbeat(profile) {
-  clearInterval(heartbeatTimer);
-  heartbeatTimer = window.setInterval(() => {
-    updateLastActive(profile).catch((error) => {
-      console.error("Unable to update last active", error);
-    });
-  }, appConfig.sessionHeartbeatMs);
-}
-
-function bindUnload() {
-  if (unloadBound) {
-    return;
-  }
-
-  unloadBound = true;
-  window.addEventListener("beforeunload", () => {
-    clearInterval(heartbeatTimer);
-  });
-}
-
-async function finalizeAuth(user) {
-  const profile = await fetchUserProfile(user.uid);
-
-  if (!profile) {
-    await signOut(auth);
-    navigateTo("login.html");
-    throw new Error("No profile document exists for this account.");
-  }
-
-  currentAuthUser = user;
-  currentUserProfile = profile;
-
-  Promise.allSettled([
-    startActivitySession(profile),
-    updateLastActive(profile),
-  ]).then((results) => {
-    results
-      .filter((result) => result.status === "rejected")
-      .forEach((result) => {
-        console.warn("Non-blocking auth task failed", result.reason);
-      });
-  });
-
-  startHeartbeat(profile);
-  bindUnload();
-
-  return profile;
-}
-
-export async function initProtectedPage({ allowedRoles = roles, onReady, viewAction = "view_page" } = {}) {
-  document.body.classList.add("auth-loading");
-  authLoadingTimeout = window.setTimeout(() => {
-    showAuthProblem("Your account signed in, but the application is waiting too long for Firebase data. This usually means the `users` profile, Firestore rules, or a deployed script is out of sync.");
-  }, 8000);
-
-  return new Promise((resolve, reject) => {
-    let settled = false;
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        navigateTo("login.html");
-        return;
-      }
-
-      try {
-        const profile = await finalizeAuth(user);
-
-        if (!allowedRoles.includes(profile.role)) {
-          navigateTo(routeForRole(profile.role));
-          return;
-        }
-
-        renderShell(profile);
-        bindLogout(profile);
-        stopAuthLoading();
-
-        logActivity(profile, viewAction, null, { page: window.location.pathname }).catch((error) => {
-          console.warn("Activity log write failed", error);
-        });
-
-        if (typeof onReady === "function") {
-          await onReady({ authUser: user, profile });
-        }
-
-        if (!settled) {
-          settled = true;
-          resolve({ authUser: user, profile });
-        }
-      } catch (error) {
-        stopAuthLoading();
-        console.error("Protected page initialisation failed", error);
-        showAuthProblem(error.message || "Authentication failed while loading the page.");
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
-      }
-    });
-  });
-}
-
-export function getCurrentUserProfile() {
-  return currentUserProfile;
-}
-
-export async function createManagedUserAccount(payload) {
-  const createUser = httpsCallable(functions, "createManagedUser");
-  const response = await createUser(payload);
-  return response.data;
-}
-
-export async function resetManagedUserPassword(payload) {
-  const resetPassword = httpsCallable(functions, "resetManagedUserPassword");
-  const response = await resetPassword(payload);
-  return response.data;
-}
-
-export async function updateManagedUserRole(payload) {
-  const updateRole = httpsCallable(functions, "updateManagedUserRole");
-  const response = await updateRole(payload);
-  return response.data;
-}
-
-export async function exportPeopleReport(payload) {
-  const exportReport = httpsCallable(functions, "exportPeopleReport");
-  const response = await exportReport(payload);
-  return response.data;
 }
 
 async function handleLoginSubmit(event) {
   event.preventDefault();
 
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
   const message = document.getElementById("loginMessage");
 
   clearMessage(message);
 
   try {
-    const credential = await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
-    const profile = await finalizeAuth(credential.user);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage(message, error.message, "error");
+      return;
+    }
+
+    const profile = await getProfile(data.user.id);
     navigateTo(routeForRole(profile.role));
   } catch (error) {
-    console.error("Login error", error);
-    setMessage(message, error.message.replace("Firebase: ", ""), "error");
+    setMessage(message, error.message || "We could not find a matching user profile for this account.", "error");
   }
 }
 
 function initLoginPage() {
   const loginForm = document.getElementById("loginForm");
-
   if (!loginForm || loginForm.dataset.bound === "true") {
     return;
   }
@@ -420,42 +342,45 @@ function initLoginPage() {
   loginForm.dataset.bound = "true";
   loginForm.addEventListener("submit", handleLoginSubmit);
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (!session) {
       return;
     }
 
     try {
-      const profile = await finalizeAuth(user);
+      const profile = await getProfile(session.user.id);
       navigateTo(routeForRole(profile.role));
     } catch (error) {
-      console.error(error);
+      console.warn("Login redirect skipped", error);
     }
   });
 }
 
 function initIndexPage() {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
+  startLoading();
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (!session) {
+      stopLoading();
       navigateTo("login.html");
       return;
     }
 
     try {
-      const profile = await finalizeAuth(user);
+      const profile = await getProfile(session.user.id);
+      stopLoading();
       navigateTo(routeForRole(profile.role));
     } catch (error) {
-      console.error(error);
+      console.warn("Index redirect failed", error);
+      stopLoading();
       navigateTo("login.html");
     }
   });
 }
 
-if (getLoginPage()) {
-  stopAuthLoading();
+if (currentFileName() === "login.html") {
   initLoginPage();
 }
 
-if (getIndexPage()) {
+if (currentFileName() === "index.html") {
   initIndexPage();
 }

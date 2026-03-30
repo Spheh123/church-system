@@ -18,7 +18,7 @@
         <div>
           <a class="text-link" href="people.html">Back to people</a>
           <h1 id="personName">Loading profile...</h1>
-          <p id="personMeta" class="muted-text">Fetching Firestore details.</p>
+          <p id="personMeta" class="muted-text">Fetching Supabase details.</p>
         </div>
         <div class="detail-actions">
           <span id="profileStatusBadgeContainer"><span id="profileStatusBadge" class="status-badge">Pending</span></span>
@@ -30,7 +30,7 @@
         <article class="panel">
           <div class="panel-heading">
             <h2>Full Profile</h2>
-            <span class="panel-meta">All Firestore fields</span>
+            <span class="panel-meta">Normalized intake fields</span>
           </div>
           <div id="profileFields" class="detail-grid"></div>
         </article>
@@ -71,7 +71,7 @@
         <article class="panel">
           <div class="panel-heading">
             <h2>Notes</h2>
-            <span class="panel-meta">Stored in `people/{id}/notes`</span>
+            <span class="panel-meta">Shared live between pastors and follow-up team</span>
           </div>
           <form id="noteForm" class="stack-form">
             <textarea id="noteText" rows="4" placeholder="Add a follow-up note, prayer update, or conversation summary" required></textarea>

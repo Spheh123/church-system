@@ -18,7 +18,7 @@
         <div>
           <span class="eyebrow">Connected Visitor Directory</span>
           <h1>People</h1>
-          <p>Search, review prayer needs, and move new guests into structured follow-up without leaving the live Firestore feed.</p>
+          <p>Search, review prayer needs, and move new guests into structured follow-up without leaving the live intake stream.</p>
         </div>
         <div id="directoryStats" class="hero-metrics"></div>
       </section>
@@ -26,10 +26,10 @@
       <section class="panel filter-panel">
         <div class="panel-heading">
           <h2>Directory Filters</h2>
-          <span class="panel-meta">Synced live from the existing Firestore `people` collection</span>
+          <span class="panel-meta">Synced live from the normalized Supabase `people` table</span>
         </div>
         <div class="toolbar">
-          <input type="search" id="searchInput" placeholder="Search by name, email, phone, or occupation">
+          <input type="search" id="searchInput" placeholder="Search by name, email, phone, residence, or occupation">
           <select id="statusFilter"></select>
           <select id="assignmentFilter">
             <option value="">All assignments</option>

@@ -16,30 +16,48 @@
     <main class="page-content">
       <section class="hero-panel">
         <div>
-          <span class="eyebrow">Google Sheets Reporting</span>
+          <span class="eyebrow">Reporting</span>
           <h1>Daily exports and on-demand reporting</h1>
-          <p>Send curated people and follow-up data into Google Sheets through Firebase Functions and your existing Apps Script integration.</p>
+          <p>Filter follow-up activity by date, status, and assignee, then export the result to CSV for church operations and reporting.</p>
         </div>
         <div class="hero-actions">
-          <button id="exportDailyReportButton" class="primary-action">Export daily report</button>
-          <button id="exportFullReportButton" class="secondary-action">Export full dataset</button>
+          <button id="exportFilteredReportButton" class="primary-action">Export filtered CSV</button>
+          <button id="sendToSheetsButton" class="secondary-action">Send to Google Sheets</button>
         </div>
       </section>
 
       <section class="grid-layout reports-grid">
         <article class="panel">
           <div class="panel-heading">
-            <h2>Export Summary</h2>
+            <h2>Filters</h2>
             <span class="panel-meta">Current reporting scope</span>
           </div>
+          <form id="reportsFilterForm" class="form-grid">
+            <label>
+              Start date
+              <input type="date" id="reportStartDate">
+            </label>
+            <label>
+              End date
+              <input type="date" id="reportEndDate">
+            </label>
+            <label>
+              Status
+              <select id="reportStatus"></select>
+            </label>
+            <label>
+              Assigned user
+              <select id="reportAssignee"></select>
+            </label>
+          </form>
           <div id="reportSummary" class="status-summary"></div>
           <div id="reportMessage" class="inline-alert hidden"></div>
         </article>
 
         <article class="panel">
           <div class="panel-heading">
-            <h2>Recent Export Jobs</h2>
-            <span class="panel-meta">Function-driven audit trail</span>
+            <h2>Recent Activity</h2>
+            <span class="panel-meta">Latest report-related actions</span>
           </div>
           <div id="exportHistory" class="timeline-list"></div>
         </article>

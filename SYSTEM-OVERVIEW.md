@@ -1,98 +1,69 @@
-# Church Management System Flow
+# Church Follow-Up System Overview
 
-## 1. Visitor data collection
+## Intake flow
 
 1. A visitor fills in the Google Form.
-2. The Google Form writes the response into Google Sheets.
-3. Your existing Apps Script reads the new row.
-4. Apps Script sends the row into Firebase Firestore.
-5. The document is stored in the `people` collection.
+2. Google Form writes the response into Google Sheets.
+3. Apps Script listens for each new form submission.
+4. Apps Script sends the response to the Netlify intake endpoint.
+5. Netlify inserts the normalized record into Supabase `people`.
+6. Supabase automatically creates a default `followups` row for that person.
 
-This part is already your live intake pipeline and does not need to be broken or replaced.
+## What the system does next
 
-## 2. What the web system does next
+Once the person is inside Supabase:
 
-Once a person is inside Firestore:
+- the dashboard updates with live counts
+- the people page lists the record immediately
+- the follow-up board shows the person under `Not Called`
+- pastors and team members can add notes
+- admins and pastors can assign ownership
+- every change is written into `activity_logs`
 
-- The `People` page shows the record in real time.
-- The `Person Profile` page opens the full visitor history and all submitted fields.
-- Prayer requests are highlighted for pastoral care.
-- Follow-up users can add notes in `people/{personId}/notes`.
-- Admins and Pastors can assign a person to a follow-up worker.
-- Follow-up status moves through:
-  - `Pending`
-  - `Contacted`
-  - `Not reachable`
-  - `Follow-up again`
-  - `Completed`
+## Main database objects
 
-## 3. Authentication and user control
+- `users`
+- `people`
+- `followups`
+- `followup_notes`
+- `activity_logs`
+- `people_overview` view
 
-- Users are stored in `users`.
-- Login is through Firebase Authentication with email and password.
-- Public signup is not used.
-- Admins and Pastors create users manually.
-- Password resets happen through Firebase Functions, not through a public reset form.
+## Role access
 
-## 4. Activity and audit trail
+`admin`
+- full access
+- create users
+- export reports
 
-Everything important is written into `activity_logs`:
+`pastor`
+- view all people
+- update follow-ups
+- view reports
 
-- login
-- logout
-- viewing records
-- editing records
-- assigning follow-ups
-- report exports
+`team`
+- only sees assigned people
+- updates statuses
+- adds notes
 
-That gives you accountability for who opened what, who changed what, and how long a session lasted.
+## Core screens
 
-## 5. Pastor dashboard
+- `login.html`
+- `dashboard.html`
+- `people.html`
+- `person.html`
+- `followup.html`
+- `reports.html`
 
-The dashboard is designed for leadership visibility:
+## Team presentation summary
 
-- people needing prayer
-- people not yet contacted
-- new visitors from the last 48 hours
-- follow-up progress summary
-- user management for Admin and Pastor roles
+"Google Form remains the intake front door. We do not need to change how visitors submit their details. Each response goes from Google Form to Google Sheets, then through Apps Script into our Netlify intake endpoint, and finally into Supabase. From there the church follow-up system takes over in real time for tracking, assignment, notes, accountability, and reporting."
 
-## 6. Reporting to Google Sheets
+## Go-live checklist
 
-- Manual export can be triggered from the `Reports` page.
-- Daily export is handled by a scheduled Firebase Function.
-- The function posts the selected report data to your Apps Script webhook.
-- Apps Script writes the data into Google Sheets for ministry reporting.
-
-## 7. What you can tell the team today
-
-You can present the system like this:
-
-"Google Form is still our front door. Nothing in the intake process changes. Once the form is submitted, the response goes to Google Sheets, then Apps Script pushes it into Firestore. From there, our church management system takes over in real time. Admins, pastors, and the follow-up team can immediately see the person, track prayer needs, assign follow-up, add notes, monitor activity, and export reports to Google Sheets."
-
-## 8. Go-live checklist
-
-- Confirm every user has both:
-  - a Firebase Authentication account
-  - a matching Firestore `users/{uid}` document
-- Deploy the latest frontend files
-- Deploy Firestore rules and indexes
-- Deploy Firebase Functions
-- Set the `REPORT_WEBHOOK_URL` secret for the Apps Script endpoint
-- Publish on a proper HTTPS custom domain
-
-## 9. Browser safety note
-
-If Chrome flags the login page as suspicious, that is usually not caused by Firestore itself. It is usually one of these:
-
-- the app is running on a temporary or unfamiliar domain
-- the domain has not built enough trust yet
-- the page looks like a generic login page without strong branding
-- the site is being opened from an insecure or unusual preview URL
-
-The correct production fix is:
-
-1. Use a church-owned custom domain.
-2. Keep HTTPS enabled.
-3. Use clear church branding, favicon, and contact identity.
-4. Avoid sharing raw preview links for production use.
+1. Run the SQL in `supabase/schema.sql`
+2. Set Supabase URL and anon key in `shared/config.js`
+3. Add Netlify environment variables
+4. Connect Apps Script to `/.netlify/functions/form-intake`
+5. Create the first admin in Supabase Auth and `public.users`
+6. Deploy to Netlify

@@ -14,13 +14,22 @@
 <body>
   <div id="appShell" class="app-shell" data-page-title="Follow-up Workspace" data-nav="followup">
     <main class="page-content">
+      <section class="hero-panel">
+        <div>
+          <span class="eyebrow">Follow-Up Board</span>
+          <h1>Track every call in one place</h1>
+          <p>Drag visitors across the board as contact attempts progress. Updates sync instantly for pastors and team members.</p>
+        </div>
+        <div id="boardStats" class="hero-metrics"></div>
+      </section>
+
       <section class="panel filter-panel">
         <div class="panel-heading">
-          <h1>Follow-up Workspace</h1>
+          <h2>Board Filters</h2>
           <span class="panel-meta">Manage assigned visitors, contact outcomes, and prayer-sensitive care.</span>
         </div>
         <div class="toolbar">
-          <select id="followupStatusFilter"></select>
+          <input type="search" id="boardSearch" placeholder="Search by name, phone, email, or residence">
           <select id="followupAssignmentScope">
             <option value="mine">My queue</option>
             <option value="all">All assignments</option>
@@ -29,7 +38,7 @@
         </div>
       </section>
 
-      <section id="followupList" class="card-grid"></section>
+      <section id="followupBoard" class="kanban-board"></section>
       <div id="followupEmptyState" class="empty-state hidden">No follow-up records matched the current view.</div>
     </main>
   </div>

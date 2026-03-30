@@ -1,99 +1,88 @@
-import { doc, updateDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { supabase } from "../../shared/supabase.js";
+import { appConfig } from "../../shared/config.js";
 
-import { db } from "../../shared/firebase.js";
+let currentProfile = null;
+const sessionStartKey = "soj-session-start";
+const sessionUserKey = "soj-session-user";
 
-const SESSION_KEY = "soj-cms-session";
-
-function readSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    console.error("Unable to read session state", error);
-    return null;
-  }
+export function setActivityProfile(profile) {
+  currentProfile = profile;
 }
 
-function writeSession(session) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
-export async function startActivitySession(profile) {
-  let session = readSession();
-
-  if (session?.userId !== profile.id) {
-    session = {
-      userId: profile.id,
-      email: profile.email,
-      role: profile.role,
-      sessionId: crypto.randomUUID(),
-      startedAt: Date.now(),
-      loginLogId: null,
-    };
+function ensureSessionStart() {
+  if (!currentProfile?.id) {
+    return false;
   }
 
-  if (!session.loginLogId) {
-    const loginLog = await addDoc(collection(db, "activity_logs"), {
-      user_email: profile.email,
-      action: "login",
-      target_person_id: null,
-      timestamp: serverTimestamp(),
-      duration: null,
-      session_id: session.sessionId,
-      user_role: profile.role,
-    });
-
-    session.loginLogId = loginLog.id;
-    writeSession(session);
+  const currentSessionUser = sessionStorage.getItem(sessionUserKey);
+  if (currentSessionUser === currentProfile.id && sessionStorage.getItem(sessionStartKey)) {
+    return false;
   }
 
-  return session;
+  sessionStorage.setItem(sessionUserKey, currentProfile.id);
+  sessionStorage.setItem(sessionStartKey, Date.now().toString());
+  return true;
 }
 
-export async function logActivity(profile, action, targetPersonId = null, details = {}) {
-  if (!profile?.email) {
+export async function logActivity(action, personId = null, details = {}) {
+  if (!currentProfile?.id) {
     return;
   }
 
-  const session = readSession();
-
-  await addDoc(collection(db, "activity_logs"), {
-    user_email: profile.email,
+  const payload = {
+    user_id: currentProfile.id,
     action,
-    target_person_id: targetPersonId,
-    timestamp: serverTimestamp(),
-    duration: details.duration ?? null,
-    session_id: session?.sessionId ?? null,
-    user_role: profile.role,
+    person_id: personId,
     details,
-  });
+  };
+
+  const { error } = await supabase.from("activity_logs").insert(payload);
+
+  if (error) {
+    console.warn("Activity log failed", error);
+  }
 }
 
-export async function finishActivitySession(profile, reason = "logout") {
-  const session = readSession();
-
-  if (!profile?.email || !session?.loginLogId) {
-    sessionStorage.removeItem(SESSION_KEY);
+export async function logActivityOnce(cacheKey, action, personId = null, details = {}, ttlMs = appConfig.activityThrottleMs) {
+  const now = Date.now();
+  const lastLoggedAt = Number(sessionStorage.getItem(cacheKey) || 0);
+  if (now - lastLoggedAt < ttlMs) {
     return;
   }
 
-  const duration = Math.max(0, Math.round((Date.now() - session.startedAt) / 1000));
+  sessionStorage.setItem(cacheKey, String(now));
+  await logActivity(action, personId, details);
+}
 
-  await updateDoc(doc(db, "activity_logs", session.loginLogId), {
-    duration,
-    endedAt: serverTimestamp(),
+export async function touchPresence(markLogin = false) {
+  const { error } = await supabase.rpc("touch_my_presence", { mark_login: markLogin });
+  if (error) {
+    console.warn("Presence update failed", error);
+  }
+}
+
+export async function recordLogin() {
+  const isFreshSession = ensureSessionStart();
+  await touchPresence(true);
+
+  if (isFreshSession) {
+    await logActivity("login", null, { summary: "Signed into the follow-up workspace" });
+  }
+}
+
+export async function recordLogout() {
+  if (!currentProfile?.id) {
+    return;
+  }
+
+  const startedAt = Number(sessionStorage.getItem(sessionStartKey) || Date.now());
+  const durationSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+
+  await logActivity("logout", null, {
+    summary: "Signed out of the follow-up workspace",
+    duration_seconds: durationSeconds,
   });
 
-  await addDoc(collection(db, "activity_logs"), {
-    user_email: profile.email,
-    action: "logout",
-    target_person_id: null,
-    timestamp: serverTimestamp(),
-    duration,
-    session_id: session.sessionId,
-    user_role: profile.role,
-    details: { reason },
-  });
-
-  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(sessionStartKey);
+  sessionStorage.removeItem(sessionUserKey);
 }
