@@ -88,10 +88,14 @@ async function getProfile(userId) {
     .from("users")
     .select("*")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw error;
+  }
+
+  if (!data) {
+    throw new Error("Your account signed in, but no user profile was found in the users table. Add this Auth user to public.users with a role like admin.");
   }
 
   return data;
