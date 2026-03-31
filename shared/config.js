@@ -1,6 +1,6 @@
 export const supabaseConfig = {
-  url: "https://YOUR-PROJECT.supabase.co",
-  anonKey: "YOUR_SUPABASE_ANON_KEY",
+  url: "https://pyqwigkelwavbgbiwfhh.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5cXdpZ2tlbHdhdmJnYml3ZmhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTUwMjQsImV4cCI6MjA5MDQ3MTAyNH0.LifLPfFqb0Nhmzm_EPVI5xGfMUOPHCFlyrzEjSKP0yg",
 };
 
 export const appConfig = {
