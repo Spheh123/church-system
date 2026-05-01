@@ -13,6 +13,7 @@ const newUserRole = document.getElementById("newUserRole");
 const generatedPasswordCard = document.getElementById("generatedPasswordCard");
 const userDirectory = document.getElementById("userDirectory");
 const activityAuditLog = document.getElementById("activityAuditLog");
+const accessOverview = document.getElementById("accessOverview");
 
 let currentProfile = null;
 let people = [];
@@ -30,18 +31,16 @@ function renderStack(container, rows, emptyText, template) {
 }
 
 function renderDashboard() {
-  const visiblePeople = currentProfile.role === "team"
-    ? people.filter((person) => person.assigned_to === currentProfile.id)
-    : people;
-  const firstTimers = visiblePeople.filter((person) => withinDays(person.created_at, appConfig.firstTimerWindowDays));
-  const pending = visiblePeople.filter((person) => person.status === "not_called");
-  const prayer = visiblePeople.filter((person) => person.prayer_points);
+  const firstTimers = people.filter((person) => withinDays(person.created_at, appConfig.firstTimerWindowDays));
+  const pending = people.filter((person) => person.status === "not_called");
+  const prayer = people.filter((person) => person.prayer_points);
+  const contacted = people.filter((person) => person.status && person.status !== "not_called");
 
   summaryCards.innerHTML = `
-    <article class="metric-card"><span class="muted-text">Total People</span><strong>${visiblePeople.length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Total People</span><strong>${people.length}</strong></article>
     <article class="metric-card"><span class="muted-text">First Timers</span><strong>${firstTimers.length}</strong></article>
     <article class="metric-card"><span class="muted-text">Pending Calls</span><strong>${pending.length}</strong></article>
-    <article class="metric-card"><span class="muted-text">Prayer Needs</span><strong>${prayer.length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Contacted</span><strong>${contacted.length}</strong></article>
   `;
 
   renderStack(
@@ -67,7 +66,7 @@ function renderDashboard() {
 
   progressSummary.innerHTML = followUpStatuses
     .map((status) => {
-      const count = visiblePeople.filter((person) => person.status === status).length;
+      const count = people.filter((person) => person.status === status).length;
       return `<article class="summary-pill"><strong>${count}</strong><div>${escapeHtml(statusLabels[status])}</div></article>`;
     })
     .join("");
@@ -89,33 +88,39 @@ async function loadUsers() {
     throw error;
   }
 
-  userDirectory.innerHTML = `
-    <div class="access-table-header">
-      <div>User</div>
-      <div>Role</div>
-      <div>Email</div>
-      <div>Added</div>
-      <div>Last active</div>
-      <div>Admin action</div>
-    </div>
-    ${(data ?? []).map((user) => `
-      <div class="access-table-row">
-        <div>
-          <strong>${escapeHtml(user.name || user.email)}</strong>
-          <div class="muted-text">Created ${formatTimestamp(user.created_at)}</div>
-        </div>
-        <div>${escapeHtml(user.role)}</div>
-        <div>${escapeHtml(user.email)}</div>
-        <div>${formatTimestamp(user.created_at)}</div>
-        <div>${formatTimestamp(user.last_active_at || user.last_login_at || user.created_at)}</div>
-        <div>
-          ${currentProfile.role === "admin"
-            ? `<button type="button" class="secondary-action user-password-reset" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name || user.email)}">Generate password</button>`
-            : `<span class="muted-text">Admin only</span>`}
-        </div>
-      </div>
-    `).join("")}
+  const users = data ?? [];
+  const activeThisWeek = users.filter((user) => {
+    const lastTouch = user.last_active_at || user.last_login_at;
+    return lastTouch && withinDays(lastTouch, 7);
+  });
+
+  accessOverview.innerHTML = `
+    <article class="summary-pill"><strong>${users.length}</strong><div>Total staff access</div></article>
+    <article class="summary-pill"><strong>${users.filter((user) => user.role === "admin").length}</strong><div>Admins</div></article>
+    <article class="summary-pill"><strong>${users.filter((user) => user.role === "pastor").length}</strong><div>Pastors</div></article>
+    <article class="summary-pill"><strong>${activeThisWeek.length}</strong><div>Active this week</div></article>
   `;
+
+  userDirectory.innerHTML = users.length
+    ? users.map((user) => `
+      <article class="directory-person-card">
+        <div class="directory-person-top">
+          <div>
+            <strong>${escapeHtml(user.name || user.email)}</strong>
+            <div class="muted-text">${escapeHtml(user.email)}</div>
+          </div>
+          <span class="status-badge status-info">${escapeHtml(user.role)}</span>
+        </div>
+        <div class="directory-person-meta">
+          <span><strong>Added:</strong> ${formatTimestamp(user.created_at)}</span>
+          <span><strong>Last active:</strong> ${formatTimestamp(user.last_active_at || user.last_login_at || user.created_at)}</span>
+        </div>
+        ${currentProfile.role === "admin"
+          ? `<button type="button" class="secondary-action user-password-reset" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name || user.email)}">Generate password</button>`
+          : ""}
+      </article>
+    `).join("")
+    : `<div class="empty-state">No staff accounts are available yet.</div>`;
 }
 
 async function loadActivityAudit() {

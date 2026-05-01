@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Pastor dashboard for Streams of Joy Johannesburg Church Management System">
-  <title>Pastor Dashboard</title>
+  <meta name="description" content="Leadership dashboard for Streams of Joy Johannesburg Church Management System">
+  <title>Leadership Dashboard</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,56 +12,71 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <div id="appShell" class="app-shell" data-page-title="Pastor Dashboard" data-nav="dashboard">
+  <div id="appShell" class="app-shell" data-page-title="Leadership Dashboard" data-nav="dashboard">
     <main class="page-content">
-      <section class="hero-panel">
-        <div>
-          <span class="eyebrow">Real-Time Ministry Oversight</span>
-          <h1>Pastoral care at a glance</h1>
-          <p>Track first timers, pending calls, prayers, and team accountability on one live follow-up platform.</p>
+      <section class="hero-panel dashboard-hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Ministry Oversight</span>
+          <h1>Welcome to the follow-up command centre</h1>
+          <p>See new submissions, prayer needs, team movement, and follow-up progress in one clear workspace designed for pastoral care.</p>
+          <div class="hero-actions">
+            <a class="primary-action" href="people.html">Open people directory</a>
+            <a class="secondary-action" href="followup.html">Open follow-up board</a>
+          </div>
         </div>
-        <div class="hero-metrics" id="summaryCards"></div>
+        <div class="executive-summary" id="summaryCards"></div>
       </section>
 
-      <section class="grid-layout dashboard-grid">
+      <section class="grid-layout spotlight-grid">
         <article class="panel">
           <div class="panel-heading">
-            <h2>Prayer Priority</h2>
-            <span class="panel-meta">Live prayer needs</span>
-          </div>
-          <div id="prayerList" class="stack-list"></div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-heading">
-            <h2>Not Yet Contacted</h2>
-            <span class="panel-meta">Immediate follow-up queue</span>
-          </div>
-          <div id="notContactedList" class="stack-list"></div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-heading">
-            <h2>New Visitors</h2>
-            <span class="panel-meta">Recent first-timer intake</span>
+            <h2>New This Week</h2>
+            <span class="panel-meta">Fresh people needing welcome and follow-through</span>
           </div>
           <div id="newVisitorsList" class="stack-list"></div>
         </article>
 
         <article class="panel">
           <div class="panel-heading">
-            <h2>Follow-up Progress</h2>
-            <span class="panel-meta">Status distribution</span>
+            <h2>Prayer Priority</h2>
+            <span class="panel-meta">People asking for care and prayer</span>
+          </div>
+          <div id="prayerList" class="stack-list"></div>
+        </article>
+      </section>
+
+      <section class="grid-layout dashboard-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Awaiting First Contact</h2>
+            <span class="panel-meta">People who still need a first call or message</span>
+          </div>
+          <div id="notContactedList" class="stack-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Follow-Up Snapshot</h2>
+            <span class="panel-meta">Movement across the ministry journey</span>
           </div>
           <div id="progressSummary" class="status-summary"></div>
         </article>
       </section>
 
       <section class="grid-layout admin-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Access Overview</h2>
+            <span class="panel-meta">Who can use the system and who has been active</span>
+          </div>
+          <div id="accessOverview" class="status-summary"></div>
+          <div id="userDirectory" class="stack-list compact-stack"></div>
+        </article>
+
         <article class="panel admin-panel">
           <div class="panel-heading">
-            <h2>User Provisioning</h2>
-            <span class="panel-meta">Admins can create accounts for pastors and team members</span>
+            <h2>Admin Controls</h2>
+            <span class="panel-meta">Provision ministry accounts and keep access under control</span>
           </div>
           <form id="createUserForm" class="form-grid">
             <label>
@@ -80,20 +95,12 @@
           </form>
           <div id="generatedPasswordCard" class="inline-alert hidden"></div>
         </article>
-
-        <article class="panel">
-          <div class="panel-heading">
-            <h2>Access Directory</h2>
-            <span class="panel-meta">Everyone who has access to the system</span>
-          </div>
-          <div id="userDirectory" class="table-card"></div>
-        </article>
       </section>
 
       <section class="panel">
         <div class="panel-heading">
           <h2>System Activity</h2>
-          <span class="panel-meta">Admins can review recent activity across the workspace</span>
+          <span class="panel-meta">Recent sign-ins, updates, reports, and follow-up actions</span>
         </div>
         <div id="activityAuditLog" class="timeline-list"></div>
       </section>

@@ -126,10 +126,9 @@ function renderShell(profile) {
   shell.innerHTML = `
     <aside class="sidebar">
       <div class="brand-block">
-        <img class="brand-logo" src="${escapeHtml(appConfig.logoPath)}" alt="Streams of Joy Johannesburg logo">
         <span class="eyebrow">Church Follow-Up</span>
         <h2>${escapeHtml(appConfig.appName)}</h2>
-        <p>Built for stable visitor care, reporting, and accountability on Supabase.</p>
+        <p>Built for thoughtful visitor care, structured follow-up, and trusted ministry records.</p>
       </div>
 
       <nav class="sidebar-nav">${navMarkup}</nav>
