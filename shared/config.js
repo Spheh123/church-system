@@ -8,6 +8,8 @@ export const appConfig = {
   supportEmail: "admin@streamsofjoyjhb.org",
   formWebhookPath: "/.netlify/functions/form-intake",
   adminUserProvisionPath: "/.netlify/functions/admin-create-user",
+  adminPasswordResetPath: "/.netlify/functions/admin-reset-user-password",
+  publicIntakePath: "intake.html",
   firstTimerWindowDays: 7,
   sessionHeartbeatMs: 60_000,
   activityThrottleMs: 180_000,

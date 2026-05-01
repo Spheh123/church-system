@@ -1,7 +1,12 @@
 function json(statusCode, body) {
   return {
     statusCode,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, x-form-secret",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    },
     body: JSON.stringify(body),
   };
 }
@@ -80,6 +85,11 @@ function normalizePerson(source) {
 }
 
 async function insertPerson(person, env) {
+  const primaryPayload = {
+    ...person,
+    area: person.area_of_residence,
+  };
+
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/people`, {
     method: "POST",
     headers: {
@@ -88,16 +98,54 @@ async function insertPerson(person, env) {
       apikey: env.SUPABASE_SERVICE_ROLE_KEY,
       Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
     },
-    body: JSON.stringify(person),
+    body: JSON.stringify(primaryPayload),
+  });
+
+  const data = await response.json();
+
+  if (response.ok) {
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  const message = data?.message || "";
+  const missingAreaOfResidence = message.includes("area_of_residence");
+
+  if (!missingAreaOfResidence) {
+    return {
+      ok: false,
+      data,
+    };
+  }
+
+  const fallbackPayload = { ...person };
+  delete fallbackPayload.area_of_residence;
+  fallbackPayload.area = person.area_of_residence;
+
+  const fallbackResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/people`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify(fallbackPayload),
   });
 
   return {
-    ok: response.ok,
-    data: await response.json(),
+    ok: fallbackResponse.ok,
+    data: await fallbackResponse.json(),
   };
 }
 
 exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return json(200, { ok: true });
+  }
+
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
   }
@@ -120,8 +168,9 @@ exports.handler = async (event) => {
 
   const expectedSecret = process.env.FORM_WEBHOOK_SECRET;
   const suppliedSecret = event.headers["x-form-secret"] || payload.secret;
+  const isPublicBrowserSubmission = payload.source === "public_form";
 
-  if (expectedSecret && suppliedSecret !== expectedSecret) {
+  if (expectedSecret && !isPublicBrowserSubmission && suppliedSecret !== expectedSecret) {
     return json(401, { error: "Invalid form secret" });
   }
 

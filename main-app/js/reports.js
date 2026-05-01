@@ -81,22 +81,39 @@ async function loadUsers() {
 }
 
 async function loadHistory() {
-  const { data, error } = await supabase
+  const actions = ["report_exported", "report_sent_to_sheets"];
+  let data = null;
+
+  const joinedQuery = await supabase
     .from("activity_logs")
     .select("*, users(name, email)")
-    .in("action", ["report_exported", "report_sent_to_sheets"])
+    .in("action", actions)
     .order("timestamp", { ascending: false })
     .limit(10);
 
-  if (error) {
-    throw error;
+  if (joinedQuery.error) {
+    const fallbackQuery = await supabase
+      .from("activity_logs")
+      .select("*")
+      .in("action", actions)
+      .order("timestamp", { ascending: false })
+      .limit(10);
+
+    if (fallbackQuery.error) {
+      exportHistory.innerHTML = `<div class="empty-state">Report history is not available yet.</div>`;
+      return;
+    }
+
+    data = fallbackQuery.data;
+  } else {
+    data = joinedQuery.data;
   }
 
   exportHistory.innerHTML = (data ?? []).length
     ? data.map((item) => `
       <article class="timeline-item">
         <div class="timeline-item">
-          <strong>${escapeHtml(item.users?.name || item.users?.email || "Unknown user")}</strong>
+          <strong>${escapeHtml(item.users?.name || item.users?.email || "System activity")}</strong>
           <span class="muted-text">${formatTimestamp(item.timestamp)}</span>
         </div>
         <div>${escapeHtml(item.action)}</div>

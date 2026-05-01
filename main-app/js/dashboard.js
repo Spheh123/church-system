@@ -1,6 +1,7 @@
 import { supabase } from "../../shared/supabase.js";
 import { appConfig, defaultRouteByRole, followUpStatuses, roles, statusLabels } from "../../shared/config.js";
 import { initProtectedPage, escapeHtml, formatTimestamp, populateRoleSelect, setMessage, clearMessage, subscribeTables } from "./auth.js";
+import { logActivity } from "./activity.js";
 
 const summaryCards = document.getElementById("summaryCards");
 const prayerList = document.getElementById("prayerList");
@@ -11,6 +12,7 @@ const createUserForm = document.getElementById("createUserForm");
 const newUserRole = document.getElementById("newUserRole");
 const generatedPasswordCard = document.getElementById("generatedPasswordCard");
 const userDirectory = document.getElementById("userDirectory");
+const activityAuditLog = document.getElementById("activityAuditLog");
 
 let currentProfile = null;
 let people = [];
@@ -88,21 +90,62 @@ async function loadUsers() {
   }
 
   userDirectory.innerHTML = `
-    <div class="table-header">
+    <div class="access-table-header">
       <div>User</div>
       <div>Role</div>
       <div>Email</div>
+      <div>Added</div>
       <div>Last active</div>
+      <div>Admin action</div>
     </div>
     ${(data ?? []).map((user) => `
-      <div class="table-row">
-        <div><strong>${escapeHtml(user.name || user.email)}</strong></div>
+      <div class="access-table-row">
+        <div>
+          <strong>${escapeHtml(user.name || user.email)}</strong>
+          <div class="muted-text">Created ${formatTimestamp(user.created_at)}</div>
+        </div>
         <div>${escapeHtml(user.role)}</div>
         <div>${escapeHtml(user.email)}</div>
+        <div>${formatTimestamp(user.created_at)}</div>
         <div>${formatTimestamp(user.last_active_at || user.last_login_at || user.created_at)}</div>
+        <div>
+          ${currentProfile.role === "admin"
+            ? `<button type="button" class="secondary-action user-password-reset" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name || user.email)}">Generate password</button>`
+            : `<span class="muted-text">Admin only</span>`}
+        </div>
       </div>
     `).join("")}
   `;
+}
+
+async function loadActivityAudit() {
+  let data = null;
+
+  const joinedQuery = await supabase
+    .from("activity_logs")
+    .select("*, users(name, email)")
+    .order("timestamp", { ascending: false })
+    .limit(25);
+
+  if (joinedQuery.error) {
+    activityAuditLog.innerHTML = `<div class="empty-state">Activity history is not available yet.</div>`;
+    return;
+  }
+
+  data = joinedQuery.data ?? [];
+
+  activityAuditLog.innerHTML = data.length
+    ? data.map((item) => `
+      <article class="timeline-item">
+        <div class="timeline-item">
+          <strong>${escapeHtml(item.users?.name || item.users?.email || "System activity")}</strong>
+          <span class="muted-text">${formatTimestamp(item.timestamp)}</span>
+        </div>
+        <div>${escapeHtml(item.action)}</div>
+        <div class="muted-text">${escapeHtml(item.details?.summary || "")}</div>
+      </article>
+    `).join("")
+    : `<div class="empty-state">No activity has been logged yet.</div>`;
 }
 
 function bindAdminCreateUser(session) {
@@ -139,29 +182,74 @@ function bindAdminCreateUser(session) {
     createUserForm.reset();
     populateRoleSelect(newUserRole, "team");
     setMessage(generatedPasswordCard, `User created. Temporary password: ${result.password}`, "success");
+    await logActivity("user_created", null, {
+      summary: `Created ${result.user?.name || result.user?.email || "a new user"} with role ${result.user?.role || newUserRole.value}`,
+    });
     await loadUsers();
+    await loadActivityAudit();
   });
 }
+
+userDirectory.addEventListener("click", async (event) => {
+  const button = event.target.closest(".user-password-reset");
+  if (!button || currentProfile?.role !== "admin") {
+    return;
+  }
+
+  clearMessage(generatedPasswordCard);
+
+  const response = await fetch(appConfig.adminPasswordResetPath, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${currentProfile.sessionToken}`,
+    },
+    body: JSON.stringify({
+      userId: button.dataset.userId,
+    }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    setMessage(generatedPasswordCard, result.error || "Password reset failed.", "error");
+    return;
+  }
+
+  setMessage(
+    generatedPasswordCard,
+    `${button.dataset.userName} now has a new system-managed password: ${result.password}`,
+    "success",
+  );
+  await logActivity("password_reset", null, {
+    summary: `Generated a new password for ${button.dataset.userName}`,
+  });
+  await loadActivityAudit();
+});
 
 initProtectedPage({
   allowedRoles: roles,
   onReady: async ({ session, profile }) => {
-    currentProfile = profile;
+    currentProfile = {
+      ...profile,
+      sessionToken: session.access_token,
+    };
 
     if (profile.role === "team") {
       window.location.replace(defaultRouteByRole.team);
       return;
     }
 
-    await Promise.all([loadPeople(), loadUsers()]);
+    await Promise.all([loadPeople(), loadUsers(), loadActivityAudit()]);
     bindAdminCreateUser(session);
 
     const peopleChannel = subscribeTables(["people", "followups"], loadPeople);
     const usersChannel = subscribeTables(["users"], loadUsers);
+    const activityChannel = subscribeTables(["activity_logs"], loadActivityAudit);
 
     window.addEventListener("beforeunload", () => {
       supabase.removeChannel(peopleChannel);
       supabase.removeChannel(usersChannel);
+      supabase.removeChannel(activityChannel);
     });
   },
 }).catch((error) => {

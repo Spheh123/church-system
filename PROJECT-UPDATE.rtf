@@ -1,0 +1,52 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Arial;}{\f1 Calibri;}}
+\fs24
+\b Streams of Joy Johannesburg Church System Update\par
+\b0
+\par
+\b Date:\b0 24 April 2026\par
+\b Project folder:\b0 C:\\Users\\DELL\\Downloads\\My webistes\\Streams-Of-Joy-Johannesburg\\church-system\par
+\par
+\b Original requests kept in scope\par
+\b0
+1. Keep the existing system and do not remove what was already built.\par
+2. Add a People section that shows every captured person on the system.\par
+3. Allow data collection without requiring people to log in.\par
+4. Keep a master admin profile that can add access for users using email plus a generated password.\par
+5. Keep password management controlled by admin in the app experience.\par
+6. Allow admin to see activity and what was done.\par
+7. Explain how to open the site and view it.\par
+\par
+\b What was already in the system\par
+\b0
+1. The People page already existed and was reading from the live people overview in Supabase.\par
+2. Admin user creation already existed through the Netlify function admin-create-user.\par
+3. Activity logging already existed for login, logout, person views, notes, and follow-up updates.\par
+4. The intake pipeline already existed from Google Form to Apps Script to Netlify to Supabase.\par
+\par
+\b What was added now\par
+\b0
+1. A new public intake page was added at main-app\\intake.html so people can submit the form without logging in.\par
+2. The intake function was updated so the public intake page can submit directly while the existing Google Form flow remains intact.\par
+3. The login page now includes a direct link to the public visitor form.\par
+4. The dashboard now shows an Access Directory with everyone who has system access.\par
+5. The dashboard now shows a System Activity section so admin can review recent actions.\par
+6. Admin can now regenerate a system-managed password for an existing user from the dashboard.\par
+7. Netlify redirects were updated so the public form can be opened from /intake.\par
+\par
+\b Important note about passwords\par
+\b0
+The app experience now keeps password creation and password reset under admin control. There is still no full custom authentication server in this project, so the strongest practical setup here is admin-managed credentials inside the app plus disabled public signup. If you want absolute no-change password enforcement at the authentication provider level, that would need a deeper auth redesign.\par
+\par
+\b How to open and view the site\par
+\b0
+1. This computer currently does not have node, python, py, or the Netlify CLI available in the terminal.\par
+2. Because of that, the project cannot be started locally from this machine yet using the normal development commands.\par
+3. Easiest option: deploy to Netlify and open the live site URLs such as /main-app/login.html or /main-app/intake.html.\par
+4. If Node is installed later, use Netlify CLI to run the full site with functions.\par
+5. If you only want a static preview later, a simple local web server can also be used, but Netlify dev is better because this project uses Netlify functions.\par
+\par
+\b Clean summary\par
+\b0
+The system was kept intact, the People section remains in place, a public no-login form was added, admin access management was strengthened, and admin activity visibility was improved.\par
+}

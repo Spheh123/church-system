@@ -73,6 +73,8 @@ The dashboard uses `/.netlify/functions/admin-create-user` so only admins can cr
 - inserts the matching `public.users` profile
 - returns a temporary password
 
+Admins can also regenerate a system-managed password from the dashboard using `/.netlify/functions/admin-reset-user-password`.
+
 The `users` table also tracks:
 
 - `created_by`
@@ -98,8 +100,25 @@ Presence is updated from the frontend with a secure Supabase RPC so the dashboar
 4. Netlify will use [netlify.toml](/C:/Users/DELL/Downloads/My%20webistes/Streams-Of-Joy-Johannesburg/church-system/netlify.toml) for redirects and function path.
 5. Deploy.
 
+Public intake page:
+
+- `/intake`
+- `/main-app/intake.html`
+
 ## Reporting
 
 - Reports page filters by date, status, and assignee.
 - CSV export runs in the browser.
 - Optional Google Sheets push uses `/.netlify/functions/form-intake` in `report_export` mode.
+
+## How to open the site
+
+Right now this computer does not have `node`, `python`, `py`, or `netlify` available in the terminal, so the project cannot be started locally from this machine yet.
+
+Fastest way to open it:
+
+1. Deploy the repo to Netlify.
+2. Open `/main-app/login.html` for staff login.
+3. Open `/main-app/intake.html` for the public visitor form.
+
+If Node.js is installed later, the best local option is `netlify dev` so redirects and Netlify functions work during testing.

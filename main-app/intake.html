@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Public visitor intake form for Streams of Joy Johannesburg Church Management System">
+  <title>Visitor Intake Form</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="public-page-body">
+  <main class="public-page-layout">
+    <section class="hero-panel public-hero">
+      <div>
+        <span class="eyebrow">Public Church Form</span>
+        <h1>Streams of Joy Johannesburg Visitor Form</h1>
+        <p>People can complete this form without logging in. Every submission is sent straight into the church follow-up system for pastoral care, assignment, and reporting.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="secondary-action" href="login.html">Open staff login</a>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <h2>Visitor Information</h2>
+        <span class="panel-meta">This feeds the same intake database already used by the system</span>
+      </div>
+      <form id="publicIntakeForm" class="form-grid">
+        <label>
+          Full name
+          <input type="text" id="intakeFullName" required>
+        </label>
+        <label>
+          Email address
+          <input type="email" id="intakeEmail">
+        </label>
+        <label>
+          Cellphone number
+          <input type="text" id="intakePhone">
+        </label>
+        <label>
+          Area of residence
+          <input type="text" id="intakeArea">
+        </label>
+        <label>
+          Date of birth
+          <input type="text" id="intakeDob" placeholder="DD/MM/YYYY or any format you already use">
+        </label>
+        <label>
+          Gender
+          <input type="text" id="intakeGender">
+        </label>
+        <label>
+          Occupation
+          <input type="text" id="intakeOccupation">
+        </label>
+        <label>
+          Marital status
+          <input type="text" id="intakeMaritalStatus">
+        </label>
+        <label class="full-width">
+          Service feedback
+          <textarea id="intakeServiceFeedback" rows="3"></textarea>
+        </label>
+        <label>
+          Are you an NSPPDian?
+          <input type="text" id="intakeNsppdian">
+        </label>
+        <label>
+          Will you be around next Sunday?
+          <input type="text" id="intakeNextSunday">
+        </label>
+        <label>
+          Interested in membership?
+          <input type="text" id="intakeMembershipInterest">
+        </label>
+        <label>
+          Join WhatsApp group?
+          <input type="text" id="intakeWhatsappGroup">
+        </label>
+        <label class="full-width">
+          Prayer points
+          <textarea id="intakePrayerPoints" rows="4"></textarea>
+        </label>
+        <label>
+          Do you want to invite someone?
+          <input type="text" id="intakeInvite">
+        </label>
+        <label class="full-width">
+          Invite details
+          <textarea id="intakeInviteDetails" rows="3"></textarea>
+        </label>
+        <label class="hidden" aria-hidden="true">
+          Leave this field empty
+          <input type="text" id="intakeWebsite">
+        </label>
+        <button type="submit" class="primary-action">Submit visitor form</button>
+      </form>
+      <div id="publicIntakeMessage" class="inline-alert hidden"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/intake.js"></script>
+</body>
+</html>

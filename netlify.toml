@@ -36,3 +36,8 @@ status = 301
 from = "/reports"
 to = "/main-app/reports.html"
 status = 301
+
+[[redirects]]
+from = "/intake"
+to = "/main-app/intake.html"
+status = 301
