@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 250" role="img" aria-labelledby="title desc">
+  <title id="title">Streams of Joy Johannesburg</title>
+  <desc id="desc">Simplified church wordmark for the follow-up system</desc>
+  <defs>
+    <linearGradient id="wing" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#243db3"/>
+      <stop offset="100%" stop-color="#74b9ff"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <path d="M63 188c40-70 46-122 18-156 38 15 67 43 86 86-23 30-46 52-69 70-2-25-8-49-35-100 16 51 15 87 0 100z" fill="#3049bb"/>
+    <path d="M136 187c22-71 53-115 93-133-15 34-33 57-54 71 19-2 33-1 43 3-25 11-54 30-88 59l6-49z" fill="url(#wing)"/>
+    <path d="M70 204c19-6 43-10 73-10 31 0 58 4 80 13-24 4-58 6-103 6-19 0-36-3-50-9z" fill="#6aaeff"/>
+    <path d="M39 212c24-15 59-23 104-23 38 0 72 7 102 20-31 4-66 6-105 6-42 0-75-1-101-3z" fill="#3049bb"/>
+    <text x="287" y="108" fill="#3049bb" font-family="Manrope, Arial, sans-serif" font-size="72" font-weight="800">Streams of Joy</text>
+    <text x="287" y="176" fill="#74b9ff" font-family="Manrope, Arial, sans-serif" font-size="50" font-weight="700" letter-spacing="2">JOHANNESBURG</text>
+  </g>
+</svg>

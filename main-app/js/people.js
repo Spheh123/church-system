@@ -37,6 +37,7 @@ function renderPeople(rows) {
           <span><strong>Assigned to:</strong> ${escapeHtml(person.assigned_name || "Unassigned")}</span>
           <span><strong>Captured:</strong> ${formatTimestamp(person.created_at)}</span>
         </div>
+        ${person.followup_notes ? `<div class="response-highlight"><strong>Latest response:</strong> ${escapeHtml(person.followup_notes)}</div>` : ""}
         ${person.prayer_points ? `<div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div>` : ""}
       </article>
     `)
@@ -75,13 +76,7 @@ function applyFilters() {
 }
 
 async function loadPeople() {
-  let request = supabase.from("people_overview").select("*").order("created_at", { ascending: false });
-
-  if (currentProfile.role === "team") {
-    request = request.eq("assigned_to", currentProfile.id);
-  }
-
-  const { data, error } = await request;
+  const { data, error } = await supabase.from("people_overview").select("*").order("created_at", { ascending: false });
   if (error) {
     throw error;
   }

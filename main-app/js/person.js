@@ -137,6 +137,8 @@ personUpdateForm.addEventListener("submit", async (event) => {
 
   if (currentProfile.role !== "team") {
     updates.assigned_to = assignedToSelect.value || null;
+  } else if (!currentPerson.assigned_to) {
+    updates.assigned_to = currentProfile.id;
   }
 
   const { error } = await supabase.from("followups").update(updates).eq("person_id", personId);

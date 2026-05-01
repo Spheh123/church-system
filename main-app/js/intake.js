@@ -1,4 +1,4 @@
-import { appConfig } from "../../shared/config.js";
+import { supabase } from "../../shared/supabase.js";
 import { clearMessage, setMessage } from "./auth.js";
 
 const publicIntakeForm = document.getElementById("publicIntakeForm");
@@ -35,20 +35,35 @@ publicIntakeForm?.addEventListener("submit", async (event) => {
     return;
   }
 
-  const response = await fetch(appConfig.formWebhookPath, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payloadFromForm()),
+  const payload = payloadFromForm();
+  const { data, error } = await supabase.rpc("submit_public_person", {
+    p_full_name: payload.full_name,
+    p_email: payload.email,
+    p_phone: payload.phone,
+    p_area_of_residence: payload.area_of_residence,
+    p_dob: payload.dob,
+    p_gender: payload.gender,
+    p_occupation: payload.occupation,
+    p_marital_status: payload.marital_status,
+    p_service_feedback: payload.service_feedback
+      ? `${payload.service_feedback}${document.getElementById("intakeServiceAttended").value.trim() ? ` | Service attended: ${document.getElementById("intakeServiceAttended").value.trim()}` : ""}`
+      : document.getElementById("intakeServiceAttended").value.trim()
+        ? `Service attended: ${document.getElementById("intakeServiceAttended").value.trim()}`
+        : "",
+    p_nsppdian: payload.nsppdian,
+    p_next_sunday: payload.next_sunday,
+    p_membership_interest: payload.membership_interest,
+    p_whatsapp_group: payload.whatsapp_group,
+    p_prayer_points: payload.prayer_points,
+    p_invite: payload.invite,
+    p_invite_details: payload.invite_details,
   });
 
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    setMessage(publicIntakeMessage, result.error || "We could not submit the form right now.", "error");
+  if (error) {
+    setMessage(publicIntakeMessage, error.message || "We could not submit the form right now.", "error");
     return;
   }
 
   publicIntakeForm.reset();
-  setMessage(publicIntakeMessage, "Thank you. Your information has been received successfully.", "success");
+  setMessage(publicIntakeMessage, `Thank you. Your information has been received successfully. Reference: ${data}`, "success");
 });

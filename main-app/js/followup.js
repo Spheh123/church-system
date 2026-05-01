@@ -27,8 +27,9 @@ function currentRows() {
 
     const matchesSearch = !query || blob.includes(query);
     const matchesScope =
+      (scope === "incoming" && person.status === "not_called" && !person.assigned_to) ||
       (scope === "mine" && person.assigned_to === currentProfile.id) ||
-      (scope === "all" && currentProfile.role !== "team") ||
+      scope === "all" ||
       (scope === "unassigned" && !person.assigned_to);
 
     return matchesSearch && matchesScope;
@@ -38,6 +39,7 @@ function currentRows() {
 function renderStats(rows) {
   boardStats.innerHTML = `
     <article class="metric-card"><span class="muted-text">Visible Cards</span><strong>${rows.length}</strong></article>
+    <article class="metric-card"><span class="muted-text">Just Came In</span><strong>${rows.filter((row) => row.status === "not_called").length}</strong></article>
     <article class="metric-card"><span class="muted-text">Unassigned</span><strong>${rows.filter((row) => !row.assigned_to).length}</strong></article>
     <article class="metric-card"><span class="muted-text">Prayer Needs</span><strong>${rows.filter((row) => row.prayer_points).length}</strong></article>
   `;
@@ -56,6 +58,7 @@ function cardMarkup(person) {
         <span>${escapeHtml(person.assigned_name || "Unassigned")}</span>
         <span>${formatTimestamp(person.updated_at || person.created_at)}</span>
       </div>
+      ${person.followup_notes ? `<div class="response-highlight"><strong>Latest response:</strong> ${escapeHtml(person.followup_notes)}</div>` : ""}
       ${person.prayer_points ? `<div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div>` : ""}
       <a class="text-link" href="person.html?id=${person.person_id}">Open profile</a>
     </article>
@@ -87,12 +90,7 @@ function renderBoard() {
 }
 
 async function loadBoard() {
-  let request = supabase.from("people_overview").select("*").order("updated_at", { ascending: false });
-  if (currentProfile.role === "team") {
-    request = request.eq("assigned_to", currentProfile.id);
-  }
-
-  const { data, error } = await request;
+  const { data, error } = await supabase.from("people_overview").select("*").order("updated_at", { ascending: false });
   if (error) {
     throw error;
   }
@@ -102,6 +100,7 @@ async function loadBoard() {
 }
 
 async function updateStatus(personId, nextStatus) {
+  const person = people.find((item) => item.person_id === personId);
   const payload = {
     status: nextStatus,
     updated_at: new Date().toISOString(),
@@ -109,6 +108,10 @@ async function updateStatus(personId, nextStatus) {
 
   if (nextStatus !== "not_called") {
     payload.last_contacted = new Date().toISOString();
+  }
+
+  if (currentProfile.role === "team" && !person?.assigned_to) {
+    payload.assigned_to = currentProfile.id;
   }
 
   const { error } = await supabase
@@ -156,7 +159,11 @@ initProtectedPage({
     currentProfile = profile;
 
     if (profile.role === "team") {
-      followupAssignmentScope.innerHTML = `<option value="mine">My queue</option>`;
+      followupAssignmentScope.innerHTML = `
+        <option value="incoming">Just came in</option>
+        <option value="mine">My queue</option>
+        <option value="all">All visible people</option>
+      `;
     }
 
     await loadBoard();

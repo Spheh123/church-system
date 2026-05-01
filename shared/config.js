@@ -6,6 +6,7 @@ export const supabaseConfig = {
 export const appConfig = {
   appName: "Streams of Joy Johannesburg Follow-Up",
   supportEmail: "admin@streamsofjoyjhb.org",
+  logoPath: "assets/streams-of-joy-logo.svg",
   formWebhookPath: "/.netlify/functions/form-intake",
   adminUserProvisionPath: "/.netlify/functions/admin-create-user",
   adminPasswordResetPath: "/.netlify/functions/admin-reset-user-password",
@@ -53,7 +54,7 @@ export const followUpBoardColumns = [
 ];
 
 export const navItems = [
-  { key: "dashboard", label: "Dashboard", href: "dashboard.html", roles },
+  { key: "dashboard", label: "Dashboard", href: "dashboard.html", roles: ["admin", "pastor"] },
   { key: "people", label: "People", href: "people.html", roles },
   { key: "followup", label: "Follow-Up Board", href: "followup.html", roles },
   { key: "reports", label: "Reports", href: "reports.html", roles: ["admin", "pastor"] },

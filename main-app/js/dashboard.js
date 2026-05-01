@@ -1,5 +1,5 @@
 import { supabase } from "../../shared/supabase.js";
-import { appConfig, defaultRouteByRole, followUpStatuses, roles, statusLabels } from "../../shared/config.js";
+import { appConfig, followUpStatuses, statusLabels } from "../../shared/config.js";
 import { initProtectedPage, escapeHtml, formatTimestamp, populateRoleSelect, setMessage, clearMessage, subscribeTables } from "./auth.js";
 import { logActivity } from "./activity.js";
 
@@ -227,17 +227,12 @@ userDirectory.addEventListener("click", async (event) => {
 });
 
 initProtectedPage({
-  allowedRoles: roles,
+  allowedRoles: ["admin", "pastor"],
   onReady: async ({ session, profile }) => {
     currentProfile = {
       ...profile,
       sessionToken: session.access_token,
     };
-
-    if (profile.role === "team") {
-      window.location.replace(defaultRouteByRole.team);
-      return;
-    }
 
     await Promise.all([loadPeople(), loadUsers(), loadActivityAudit()]);
     bindAdminCreateUser(session);

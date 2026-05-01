@@ -55,6 +55,74 @@ create table if not exists public.people (
   created_at timestamptz not null default now()
 );
 
+create or replace function public.submit_public_person(
+  p_full_name text,
+  p_email text default null,
+  p_phone text default null,
+  p_area_of_residence text default null,
+  p_dob text default null,
+  p_gender text default null,
+  p_occupation text default null,
+  p_marital_status text default null,
+  p_service_feedback text default null,
+  p_nsppdian text default null,
+  p_next_sunday text default null,
+  p_membership_interest text default null,
+  p_whatsapp_group text default null,
+  p_prayer_points text default null,
+  p_invite text default null,
+  p_invite_details text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_person_id uuid;
+begin
+  insert into public.people (
+    full_name,
+    email,
+    phone,
+    area_of_residence,
+    dob,
+    gender,
+    occupation,
+    marital_status,
+    service_feedback,
+    nsppdian,
+    next_sunday,
+    membership_interest,
+    whatsapp_group,
+    prayer_points,
+    invite,
+    invite_details
+  )
+  values (
+    nullif(trim(p_full_name), ''),
+    nullif(trim(p_email), ''),
+    nullif(trim(p_phone), ''),
+    nullif(trim(p_area_of_residence), ''),
+    nullif(trim(p_dob), ''),
+    nullif(trim(p_gender), ''),
+    nullif(trim(p_occupation), ''),
+    nullif(trim(p_marital_status), ''),
+    nullif(trim(p_service_feedback), ''),
+    nullif(trim(p_nsppdian), ''),
+    nullif(trim(p_next_sunday), ''),
+    nullif(trim(p_membership_interest), ''),
+    nullif(trim(p_whatsapp_group), ''),
+    nullif(trim(p_prayer_points), ''),
+    nullif(trim(p_invite), ''),
+    nullif(trim(p_invite_details), '')
+  )
+  returning id into new_person_id;
+
+  return new_person_id;
+end;
+$$;
+
 create table if not exists public.followups (
   id uuid primary key default gen_random_uuid(),
   person_id uuid not null unique references public.people(id) on delete cascade,
@@ -138,6 +206,24 @@ grant select on public.people to authenticated;
 grant select, update on public.followups to authenticated;
 grant select, insert on public.followup_notes to authenticated;
 grant select, insert on public.activity_logs to authenticated;
+grant execute on function public.submit_public_person(
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text
+) to anon, authenticated;
 
 create or replace function public.touch_my_presence(mark_login boolean default false)
 returns void
@@ -170,13 +256,7 @@ language sql
 stable
 as $$
   select
-    public.current_role() in ('admin', 'pastor')
-    or exists (
-      select 1
-      from public.followups
-      where person_id = target_person
-        and assigned_to = auth.uid()
-    )
+    public.current_role() in ('admin', 'pastor', 'team')
 $$;
 
 alter table public.users enable row level security;
@@ -207,7 +287,11 @@ drop policy if exists "followups update" on public.followups;
 create policy "followups update"
 on public.followups for update
 to authenticated
-using (public.can_access_person(person_id))
+using (
+  public.current_role() in ('admin', 'pastor')
+  or assigned_to = auth.uid()
+  or assigned_to is null
+)
 with check (
   public.current_role() in ('admin', 'pastor')
   or assigned_to = auth.uid()
