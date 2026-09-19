@@ -1,6 +1,6 @@
 import { supabase } from "../../shared/supabase.js";
 import { appConfig, followUpStatuses, statusLabels } from "../../shared/config.js";
-import { initProtectedPage, escapeHtml, formatTimestamp, populateRoleSelect, setMessage, clearMessage, subscribeTables } from "./auth.js";
+import { readAllRows, initProtectedPage, escapeHtml, formatTimestamp, populateRoleSelect, setMessage, clearMessage, subscribeTables, apiRequest } from "./auth.js";
 import { logActivity } from "./activity.js";
 
 const summaryCards = document.getElementById("summaryCards");
@@ -23,7 +23,8 @@ function withinDays(dateString, days) {
     return false;
   }
 
-  return Date.now() - new Date(dateString).getTime() <= days * 24 * 60 * 60 * 1000;
+  const age = Date.now() - new Date(dateString).getTime();
+  return age >= 0 && age <= days * 24 * 60 * 60 * 1000;
 }
 
 function renderStack(container, rows, emptyText, template) {
@@ -34,11 +35,12 @@ function renderDashboard() {
   const firstTimers = people.filter((person) => withinDays(person.created_at, appConfig.firstTimerWindowDays));
   const pending = people.filter((person) => person.status === "not_called");
   const prayer = people.filter((person) => person.prayer_points);
-  const contacted = people.filter((person) => person.status && person.status !== "not_called");
+  const overdue = people.filter(p => p.next_followup_at && new Date(p.next_followup_at) < new Date() && p.status !== "completed");
+  const contacted = people.filter((person) => ["contacted", "feedback_given", "completed"].includes(person.status));
 
   summaryCards.innerHTML = `
     <article class="metric-card"><span class="muted-text">Total People</span><strong>${people.length}</strong></article>
-    <article class="metric-card"><span class="muted-text">First Timers</span><strong>${firstTimers.length}</strong></article>
+    <article class="metric-card"><span class="muted-text">New in 48 hours</span><strong>${firstTimers.length}</strong></article>
     <article class="metric-card"><span class="muted-text">Pending Calls</span><strong>${pending.length}</strong></article>
     <article class="metric-card"><span class="muted-text">Contacted</span><strong>${contacted.length}</strong></article>
   `;
@@ -47,23 +49,24 @@ function renderDashboard() {
     prayerList,
     prayer.slice(0, 8),
     "No urgent prayer requests right now.",
-    (person) => `<article class="stack-item"><strong>${escapeHtml(person.full_name)}</strong><div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div></article>`,
+    (person) => `<article class="stack-item"><a class="text-link" href="person.html?id=${person.person_id}">${escapeHtml(person.full_name)}</a><div class="prayer-highlight">${escapeHtml(person.prayer_points)}</div></article>`,
   );
 
   renderStack(
     notContactedList,
     pending.slice(0, 8),
     "Everyone has moved beyond the first call stage.",
-    (person) => `<article class="stack-item"><strong>${escapeHtml(person.full_name)}</strong><div class="muted-text">${escapeHtml(person.phone || "No phone")} | ${escapeHtml(person.area_of_residence || "No residence")}</div></article>`,
+    (person) => `<article class="stack-item"><a class="text-link" href="person.html?id=${person.person_id}">${escapeHtml(person.full_name)}</a><div class="muted-text">${escapeHtml(person.phone || "No phone")} | ${escapeHtml(person.area_of_residence || "No residence")}</div></article>`,
   );
 
   renderStack(
     newVisitorsList,
     firstTimers.slice(0, 8),
     "No new first timers in the current window.",
-    (person) => `<article class="stack-item"><strong>${escapeHtml(person.full_name)}</strong><div class="muted-text">${formatTimestamp(person.created_at)}</div></article>`,
+    (person) => `<article class="stack-item"><a class="text-link" href="person.html?id=${person.person_id}">${escapeHtml(person.full_name)}</a><div class="muted-text">${formatTimestamp(person.created_at)}</div></article>`,
   );
 
+  document.getElementById("overdueList").innerHTML = overdue.length ? overdue.map(p => `<a class="stack-item text-link" href="person.html?id=${p.person_id}">${escapeHtml(p.full_name)}<span class="muted-text"> · Due ${formatTimestamp(p.next_followup_at)}</span></a>`).join("") : `<div class="empty-state">No overdue follow-ups.</div>`;
   progressSummary.innerHTML = followUpStatuses
     .map((status) => {
       const count = people.filter((person) => person.status === status).length;
@@ -73,10 +76,7 @@ function renderDashboard() {
 }
 
 async function loadPeople() {
-  const { data, error } = await supabase.from("people_overview").select("*").order("created_at", { ascending: false });
-  if (error) {
-    throw error;
-  }
+  const data = await readAllRows("people_overview", "*", "created_at");
 
   people = data ?? [];
   renderDashboard();
@@ -109,14 +109,15 @@ async function loadUsers() {
             <strong>${escapeHtml(user.name || user.email)}</strong>
             <div class="muted-text">${escapeHtml(user.email)}</div>
           </div>
-          <span class="status-badge status-info">${escapeHtml(user.role)}</span>
+          <span class="status-badge status-info">${escapeHtml(user.role)}${user.is_active === false ? " · Disabled" : ""}</span>
         </div>
         <div class="directory-person-meta">
           <span><strong>Added:</strong> ${formatTimestamp(user.created_at)}</span>
-          <span><strong>Last active:</strong> ${formatTimestamp(user.last_active_at || user.last_login_at || user.created_at)}</span>
+          <span><strong>Last active:</strong> ${formatTimestamp(user.last_active_at || user.last_login_at)}</span>
         </div>
         ${currentProfile.role === "admin"
-          ? `<button type="button" class="secondary-action user-password-reset" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name || user.email)}">Generate password</button>`
+          ? `<button type="button" class="secondary-action user-password-reset" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name || user.email)}">Generate password</button>
+            ${user.id !== currentProfile.id ? `<button type="button" class="ghost-action user-access-toggle" data-user-id="${user.id}" data-active="${user.is_active === false}">${user.is_active === false ? "Restore access" : "Disable access"}</button>` : ""}`
           : ""}
       </article>
     `).join("")
@@ -153,105 +154,64 @@ async function loadActivityAudit() {
     : `<div class="empty-state">No activity has been logged yet.</div>`;
 }
 
-function bindAdminCreateUser(session) {
-  populateRoleSelect(newUserRole, "team");
 
-  if (currentProfile.role !== "admin") {
-    createUserForm.closest(".admin-panel")?.classList.add("hidden");
-    return;
-  }
-
-  createUserForm.addEventListener("submit", async (event) => {
+async function loadSessions() {
+  const container = document.getElementById('sessionHistory');
+  const { data, error } = await supabase.from('login_sessions').select('*, users(name,email)').order('started_at', { ascending: false }).limit(100);
+  if (error) { container.innerHTML = '<p class="inline-alert error">Login history unavailable. The administrator must apply the database upgrade.</p>'; return; }
+  const minutes = seconds => Math.floor(seconds / 3600) + 'h ' + Math.floor((seconds % 3600) / 60) + 'm';
+  container.innerHTML = data.length ? '<div class="session-table-wrap"><table class="session-table"><thead><tr><th>Staff member</th><th>Signed in / last seen</th><th>Location & device</th><th>Duration</th><th>State</th></tr></thead><tbody>' + data.map(s => {
+    const recent = Date.now() - new Date(s.last_seen_at).getTime() < 150000;
+    const elapsed = Math.max(0, (new Date(s.ended_at || s.last_seen_at) - new Date(s.started_at)) / 1000);
+    const state = s.ended_at ? 'Signed out' : recent ? (s.was_active ? 'Active' : 'Idle') : 'Disconnected';
+    return '<tr><td><strong>' + escapeHtml(s.users?.name || 'Staff member') + '</strong><small>' + escapeHtml(s.users?.email || '') + '</small></td><td>' + formatTimestamp(s.started_at) + '<small>Last seen: ' + formatTimestamp(s.last_seen_at) + '</small></td><td>' + escapeHtml(s.location || 'Location unavailable') + '<small>' + escapeHtml(s.ip_address || 'IP unavailable') + '</small><details><summary>Device</summary>' + escapeHtml(s.device || 'Unknown') + '</details></td><td>' + minutes(elapsed) + (!s.ended_at ? ' (observed)' : '') + '<small>Active ≈ ' + minutes(s.active_seconds) + '</small></td><td><span class="status-badge status-' + (state === 'Active' ? 'success' : 'muted') + '">' + state + '</span></td></tr>';
+  }).join('') + '</tbody></table></div>' : '<div class="empty-state">Login sessions will appear here as staff sign in.</div>';
+}
+function showPassword(message) {
+  setMessage(generatedPasswordCard, message + ' Copy it now and share it privately with this person.', 'success');
+  generatedPasswordCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  window.setTimeout(() => clearMessage(generatedPasswordCard), 120000);
+}
+function bindAdminCreateUser() {
+  populateRoleSelect(newUserRole, 'team');
+  if (currentProfile.role !== 'admin') { createUserForm.closest('.admin-panel').classList.add('hidden'); return; }
+  createUserForm.addEventListener('submit', async event => {
     event.preventDefault();
+    const button = event.submitter;
+    button.disabled = true;
     clearMessage(generatedPasswordCard);
-
-    const response = await fetch(appConfig.adminUserProvisionPath, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        name: document.getElementById("newUserName").value.trim(),
-        email: document.getElementById("newUserEmail").value.trim(),
-        role: newUserRole.value,
-      }),
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      setMessage(generatedPasswordCard, result.error || "User creation failed.", "error");
-      return;
-    }
-
-    createUserForm.reset();
-    populateRoleSelect(newUserRole, "team");
-    setMessage(generatedPasswordCard, `User created. Temporary password: ${result.password}`, "success");
-    await logActivity("user_created", null, {
-      summary: `Created ${result.user?.name || result.user?.email || "a new user"} with role ${result.user?.role || newUserRole.value}`,
-    });
-    await loadUsers();
-    await loadActivityAudit();
+    try {
+      const result = await apiRequest(appConfig.adminUserProvisionPath, { name: document.getElementById('newUserName').value.trim(), email: document.getElementById('newUserEmail').value.trim(), role: newUserRole.value });
+      createUserForm.reset(); populateRoleSelect(newUserRole, 'team');
+      showPassword('Account created. Password: ' + result.password);
+      await Promise.all([loadUsers(), loadActivityAudit()]);
+    } catch (error) { setMessage(generatedPasswordCard, error.message, 'error'); }
+    finally { button.disabled = false; }
   });
 }
-
-userDirectory.addEventListener("click", async (event) => {
-  const button = event.target.closest(".user-password-reset");
-  if (!button || currentProfile?.role !== "admin") {
-    return;
-  }
-
-  clearMessage(generatedPasswordCard);
-
-  const response = await fetch(appConfig.adminPasswordResetPath, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${currentProfile.sessionToken}`,
-    },
-    body: JSON.stringify({
-      userId: button.dataset.userId,
-    }),
-  });
-
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    setMessage(generatedPasswordCard, result.error || "Password reset failed.", "error");
-    return;
-  }
-
-  setMessage(
-    generatedPasswordCard,
-    `${button.dataset.userName} now has a new system-managed password: ${result.password}`,
-    "success",
-  );
-  await logActivity("password_reset", null, {
-    summary: `Generated a new password for ${button.dataset.userName}`,
-  });
-  await loadActivityAudit();
+userDirectory.addEventListener('click', async event => {
+  const button = event.target.closest('.user-password-reset, .user-access-toggle');
+  if (!button || currentProfile?.role !== 'admin') return;
+  button.disabled = true;
+  try {
+    if (button.classList.contains('user-password-reset')) {
+      const result = await apiRequest(appConfig.adminPasswordResetPath, { userId: button.dataset.userId });
+      showPassword(button.dataset.userName + ' — new password: ' + result.password);
+    } else {
+      await apiRequest('/.netlify/functions/admin-manage-user', { userId: button.dataset.userId, active: button.dataset.active === 'true' });
+      setMessage(generatedPasswordCard, 'Staff access updated.', 'success');
+    }
+    await Promise.all([loadUsers(), loadActivityAudit()]);
+  } catch (error) { setMessage(generatedPasswordCard, error.message, 'error'); }
+  finally { button.disabled = false; }
 });
-
 initProtectedPage({
-  allowedRoles: ["admin", "pastor"],
-  onReady: async ({ session, profile }) => {
-    currentProfile = {
-      ...profile,
-      sessionToken: session.access_token,
-    };
-
-    await Promise.all([loadPeople(), loadUsers(), loadActivityAudit()]);
-    bindAdminCreateUser(session);
-
-    const peopleChannel = subscribeTables(["people", "followups"], loadPeople);
-    const usersChannel = subscribeTables(["users"], loadUsers);
-    const activityChannel = subscribeTables(["activity_logs"], loadActivityAudit);
-
-    window.addEventListener("beforeunload", () => {
-      supabase.removeChannel(peopleChannel);
-      supabase.removeChannel(usersChannel);
-      supabase.removeChannel(activityChannel);
-    });
+  allowedRoles: ['admin', 'pastor'],
+  onReady: async ({ profile }) => {
+    currentProfile = profile;
+    bindAdminCreateUser();
+    await Promise.all([loadPeople(), loadUsers(), loadActivityAudit(), loadSessions()]);
+    const channels = [subscribeTables(['people','followups'], loadPeople), subscribeTables(['users'], loadUsers), subscribeTables(['activity_logs'], loadActivityAudit), subscribeTables(['login_sessions'], loadSessions)];
+    window.addEventListener('beforeunload', () => channels.forEach(c => supabase.removeChannel(c)));
   },
-}).catch((error) => {
-  console.error("Dashboard failed", error);
 });

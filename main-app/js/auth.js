@@ -73,8 +73,8 @@ function showProblem(message) {
   `;
 
   document.getElementById("backToLogin")?.addEventListener("click", async () => {
-    await recordLogout();
-    await supabase.auth.signOut();
+    await recordLogout().catch(() => {});
+    await supabase.auth.signOut({ scope: "local" });
     navigateTo("login.html");
   });
 
@@ -98,6 +98,8 @@ async function getProfile(userId) {
     throw new Error("Your account signed in, but no user profile was found in the users table. Add this Auth user to public.users with a role like admin.");
   }
 
+  if (data.is_active === false) throw new Error("Your access has been disabled. Contact the church administrator.");
+  if (!roles.includes(data.role)) throw new Error("Your account does not have a recognised role.");
   return data;
 }
 
@@ -114,7 +116,10 @@ function renderShell(profile) {
 
   const pageTitle = shell.dataset.pageTitle ?? appConfig.appName;
   const activeNav = shell.dataset.nav ?? "";
-  const existingContent = shell.innerHTML;
+  // Move the original nodes: serialising innerHTML would destroy every page's
+  // cached element reference and all listeners attached before authentication.
+  const existingContent = document.createDocumentFragment();
+  while (shell.firstChild) existingContent.append(shell.firstChild);
   const navMarkup = navItems
     .filter((item) => item.roles.includes(profile.role))
     .map((item) => {
@@ -126,9 +131,9 @@ function renderShell(profile) {
   shell.innerHTML = `
     <aside class="sidebar">
       <div class="brand-block">
-        <span class="eyebrow">Church Follow-Up</span>
-        <h2>${escapeHtml(appConfig.appName)}</h2>
-        <p>Built for thoughtful visitor care, structured follow-up, and trusted ministry records.</p>
+        <a href="https://streamsofjoyjohannesburg.org/"><img class="church-logo" src="${appConfig.logoPath}" alt="Streams of Joy Johannesburg"></a>
+        <span class="eyebrow">Ministry workspace</span>
+        <p>Every person matters.</p>
       </div>
 
       <nav class="sidebar-nav">${navMarkup}</nav>
@@ -147,19 +152,20 @@ function renderShell(profile) {
           <h1>${escapeHtml(pageTitle)}</h1>
         </div>
         <div class="topbar-actions">
-          <button id="logoutButton" class="ghost-action" type="button">Logout</button>
+          <span id="connectionStatus" class="connection-status" role="status">Connecting…</span>
+          <button id="logoutButton" class="ghost-action" type="button">Sign out</button>
         </div>
       </header>
-      ${existingContent}
     </div>
   `;
+  shell.querySelector(".app-main").append(existingContent);
 
   shell.dataset.enhanced = "true";
   shell.classList.add("shell-ready");
 
   document.getElementById("logoutButton")?.addEventListener("click", async () => {
-    await recordLogout();
-    await supabase.auth.signOut();
+    await recordLogout().catch(() => {});
+    await supabase.auth.signOut({ scope: "local" });
     navigateTo("login.html");
   });
 }
@@ -184,6 +190,7 @@ export function formatTimestamp(value) {
   }
 
   return new Intl.DateTimeFormat("en-ZA", {
+    timeZone: "Africa/Johannesburg",
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -262,11 +269,16 @@ export function subscribeTables(tables, callback) {
     channel.on(
       "postgres_changes",
       { event: "*", schema: "public", table },
-      () => callback(),
+      () => Promise.resolve(callback()).catch(showConnectionError),
     );
   });
 
-  channel.subscribe();
+  channel.subscribe((status) => {
+    const label = document.getElementById("connectionStatus");
+    if (label) label.textContent = status === "SUBSCRIBED" ? "Live updates" : "Reconnecting…";
+  });
+  const refresh = window.setInterval(() => { if (!document.hidden) Promise.resolve(callback()).catch(showConnectionError); }, 60000);
+  window.addEventListener("beforeunload", () => clearInterval(refresh), { once: true });
   return channel;
 }
 
@@ -318,6 +330,8 @@ async function handleLoginSubmit(event) {
   const message = document.getElementById("loginMessage");
 
   clearMessage(message);
+  const button = event.submitter;
+  if (button) { button.disabled = true; button.textContent = "Signing in…"; }
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -326,14 +340,18 @@ async function handleLoginSubmit(event) {
     });
 
     if (error) {
-      setMessage(message, error.message, "error");
+      setMessage(message, friendlyError(error), "error");
       return;
     }
 
     const profile = await getProfile(data.user.id);
+    setActivityProfile(profile);
+    await recordLogin();
     navigateTo(routeForRole(profile.role));
   } catch (error) {
-    setMessage(message, error.message || "We could not find a matching user profile for this account.", "error");
+    setMessage(message, friendlyError(error), "error");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Sign in to workspace"; }
   }
 }
 
@@ -387,4 +405,43 @@ if (currentFileName() === "login.html") {
 
 if (currentFileName() === "index.html") {
   initIndexPage();
+}
+
+export function friendlyError(error) {
+  const message = error?.message || 'Something went wrong. Please try again.';
+  if (/fetch|network|resolve|timeout/i.test(message)) return 'We cannot reach the login service. Check your connection; the administrator may need to restore the Supabase project.';
+  if (/invalid login/i.test(message)) return 'Email or password is incorrect. Contact your administrator if you need a new password.';
+  return message;
+}
+function showConnectionError(error) {
+  const label = document.getElementById('connectionStatus');
+  if (label) label.textContent = 'Updates interrupted — retrying';
+  console.warn('Refresh failed', error.message);
+}
+export async function apiRequest(path, body) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Please sign in again.');
+  const response = await fetch(path, { method: 'POST', signal: AbortSignal.timeout(20000), headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify(body) });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'The request failed. Please try again.');
+  return result;
+}
+
+// Clear protected screens when this browser session ends in another tab.
+supabase.auth.onAuthStateChange((event, session) => {
+  currentSession = session;
+  if (event === 'SIGNED_OUT' && !['login.html','intake.html'].includes(currentFileName())) {
+    stopPresenceHeartbeat();
+    document.getElementById('appShell')?.replaceChildren();
+    navigateTo('login.html');
+  }
+});
+export async function readAllRows(table, columns = '*', order = 'created_at') {
+  let rows = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabase.from(table).select(columns).order(order, { ascending: false }).range(offset, offset + 499);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < 500) return rows;
+  }
 }

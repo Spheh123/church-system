@@ -6,12 +6,12 @@ export const supabaseConfig = {
 export const appConfig = {
   appName: "Streams of Joy Johannesburg Follow-Up",
   supportEmail: "admin@streamsofjoyjhb.org",
-  logoPath: "assets/streams-of-joy-logo.svg",
+  logoPath: "assets/church-logo.png",
   formWebhookPath: "/.netlify/functions/form-intake",
   adminUserProvisionPath: "/.netlify/functions/admin-create-user",
   adminPasswordResetPath: "/.netlify/functions/admin-reset-user-password",
   publicIntakePath: "intake.html",
-  firstTimerWindowDays: 7,
+  firstTimerWindowDays: 2,
   sessionHeartbeatMs: 60_000,
   activityThrottleMs: 180_000,
 };
@@ -20,6 +20,8 @@ export const roles = ["admin", "pastor", "team"];
 
 export const followUpStatuses = [
   "not_called",
+  "contacted",
+  "completed",
   "called_no_answer",
   "voicemail",
   "feedback_given",
@@ -28,15 +30,19 @@ export const followUpStatuses = [
 ];
 
 export const statusLabels = {
-  not_called: "Not Called",
-  called_no_answer: "Called No Answer",
+  contacted: "Contacted",
+  completed: "Completed",
+  not_called: "Pending",
+  called_no_answer: "Not reachable",
   voicemail: "Voicemail",
-  feedback_given: "Feedback Given",
+  feedback_given: "Contacted (legacy)",
   not_interested: "Not Interested",
   follow_up_again: "Follow Up Again",
 };
 
 export const statusToneMap = {
+  contacted: "info",
+  completed: "success",
   not_called: "warning",
   called_no_answer: "danger",
   voicemail: "info",
@@ -45,13 +51,7 @@ export const statusToneMap = {
   follow_up_again: "accent",
 };
 
-export const followUpBoardColumns = [
-  "not_called",
-  "called_no_answer",
-  "voicemail",
-  "feedback_given",
-  "follow_up_again",
-];
+export const followUpBoardColumns = followUpStatuses;
 
 export const navItems = [
   { key: "dashboard", label: "Dashboard", href: "dashboard.html", roles: ["admin", "pastor"] },

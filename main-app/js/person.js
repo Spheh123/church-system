@@ -22,6 +22,9 @@ const updateSummary = document.getElementById("updateSummary");
 
 let currentProfile = null;
 let currentPerson = null;
+let followupDirty = false;
+personUpdateForm.addEventListener("input", () => { followupDirty = true; });
+personUpdateForm.addEventListener("change", () => { followupDirty = true; });
 
 function renderProfile(person) {
   currentPerson = person;
@@ -30,7 +33,8 @@ function renderProfile(person) {
   profileStatusBadgeContainer.innerHTML = getStatusBadge(person.status);
   prayerPointsCard.textContent = person.prayer_points || "No prayer points supplied.";
 
-  const whatsappNumber = (person.phone || "").replace(/\D/g, "");
+  let whatsappNumber = (person.phone || "").replace(/\D/g, "");
+  if (/^0\d{9}$/.test(whatsappNumber)) whatsappNumber = "27" + whatsappNumber.slice(1);
   openWhatsAppLink.href = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#";
   openWhatsAppLink.classList.toggle("hidden", !whatsappNumber);
 
@@ -43,7 +47,12 @@ function renderProfile(person) {
     `)
     .join("");
 
+  if (!followupDirty) {
   followUpStatusSelect.value = person.status || "not_called";
+  assignedToSelect.value = person.assigned_to || "";
+  const due = document.getElementById("nextFollowupDate");
+  if (due && person.next_followup_at) { const date = new Date(person.next_followup_at); due.value = new Date(date - date.getTimezoneOffset() * 60000).toISOString().slice(0,16); } else if (due) due.value = '';
+  }
 }
 
 async function loadPerson() {
@@ -125,37 +134,13 @@ personUpdateForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearMessage(personUpdateMessage);
 
-  const updates = {
-    status: followUpStatusSelect.value,
-    notes: updateSummary.value.trim() || currentPerson.followup_notes || "",
-    updated_at: new Date().toISOString(),
-  };
-
-  if (followUpStatusSelect.value !== "not_called") {
-    updates.last_contacted = new Date().toISOString();
-  }
-
-  if (currentProfile.role !== "team") {
-    updates.assigned_to = assignedToSelect.value || null;
-  } else if (!currentPerson.assigned_to) {
-    updates.assigned_to = currentProfile.id;
-  }
-
-  const { error } = await supabase.from("followups").update(updates).eq("person_id", personId);
-  if (error) {
-    setMessage(personUpdateMessage, error.message, "error");
-    return;
-  }
-
-  if (updateSummary.value.trim()) {
-    await supabase.from("followup_notes").insert({
-      person_id: personId,
-      user_id: currentProfile.id,
-      note: updateSummary.value.trim(),
-    });
-  }
-
-  await logActivity("status_changed", personId, { summary: updateSummary.value.trim() || "Updated follow-up details" });
+  const due = document.getElementById('nextFollowupDate').value;
+  const { error } = await supabase.rpc('save_followup', {
+    p_person: personId, p_status: followUpStatusSelect.value, p_assigned: assignedToSelect.value || null,
+    p_note: updateSummary.value.trim(), p_due: due ? new Date(due).toISOString() : null,
+  });
+  if (error) { setMessage(personUpdateMessage, error.message, 'error'); return; }
+  followupDirty = false;
   updateSummary.value = "";
   setMessage(personUpdateMessage, "Follow-up updated successfully.", "success");
   await Promise.all([loadPerson(), loadNotes(), loadActivity()]);
@@ -173,8 +158,8 @@ noteForm.addEventListener("submit", async (event) => {
     note: noteText.value.trim(),
   });
 
+  if (error) { setMessage(personUpdateMessage, error.message, "error"); return; }
   if (!error) {
-    await logActivity("note_added", personId, { summary: noteText.value.trim() });
     noteText.value = "";
     await Promise.all([loadNotes(), loadActivity()]);
   }
@@ -190,7 +175,9 @@ initProtectedPage({
       return;
     }
 
-    await Promise.all([loadPerson(), loadUsers(), loadNotes(), loadActivity()]);
+    await loadPerson();
+    setupProfileEditor();
+    await Promise.all([loadUsers(), loadNotes(), loadActivity()]);
     await logActivityOnce(`view-person-${personId}`, "viewed_record", personId, {
       summary: "Opened the person profile",
     });
@@ -206,3 +193,31 @@ initProtectedPage({
 }).catch((error) => {
   console.error("Person page failed", error);
 });
+
+function setupProfileEditor() {
+  if (!['admin','pastor'].includes(currentProfile.role)) return;
+  document.getElementById('profileEditor').classList.remove('hidden');
+  const fields = personFieldOrder.filter(f => f !== 'created_at');
+  const container = document.getElementById('profileEditFields');
+  for (const field of fields) {
+    const label = document.createElement('label'); label.textContent = personFieldLabels[field] || field;
+    const input = document.createElement(['prayer_points','service_feedback','invite_details'].includes(field) ? 'textarea' : 'input');
+    input.name = field; input.value = currentPerson[field] || ''; input.maxLength = input.tagName === 'TEXTAREA' ? 10000 : 500;
+    if (field === 'full_name') input.required = true;
+    label.append(input); container.append(label);
+  }
+  document.getElementById('profileEditForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const message = document.getElementById('profileEditMessage');
+    const button = event.submitter; button.disabled = true;
+    try {
+      const payload = Object.fromEntries(new FormData(event.target));
+      const { data, error } = await supabase.from('people').update(payload).eq('id', personId).select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('This record could not be updated. Check your access.');
+      setMessage(message, 'Profile saved.', 'success');
+      await loadPerson(); await loadActivity();
+    } catch (error) { setMessage(message, error.message, 'error'); }
+    finally { button.disabled = false; }
+  });
+}

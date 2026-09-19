@@ -1,5 +1,7 @@
 import { supabase } from "../../shared/supabase.js";
-import { initProtectedPage, escapeHtml, formatTimestamp, getStatusBadge, populateStatusSelect, subscribeTables } from "./auth.js";
+import { readAllRows, initProtectedPage, escapeHtml, formatTimestamp, getStatusBadge, populateStatusSelect, subscribeTables } from "./auth.js";
+
+import { logActivityOnce } from "./activity.js";
 
 const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
@@ -23,7 +25,7 @@ function renderStats(rows) {
 function renderPeople(rows) {
   peopleList.innerHTML = rows
     .map((person) => `
-      <article class="card" data-person-id="${person.person_id}">
+      <article class="card" tabindex="0" role="link" aria-label="Open ${escapeHtml(person.full_name)}" data-person-id="${person.person_id}">
         <div class="card-topline">
           <div>
             <h3>${escapeHtml(person.full_name)}</h3>
@@ -76,10 +78,7 @@ function applyFilters() {
 }
 
 async function loadPeople() {
-  const { data, error } = await supabase.from("people_overview").select("*").order("created_at", { ascending: false });
-  if (error) {
-    throw error;
-  }
+  const data = await readAllRows("people_overview", "*", "created_at");
 
   people = data ?? [];
   applyFilters();
@@ -101,10 +100,13 @@ peopleList.addEventListener("click", (event) => {
   window.location.assign(`person.html?id=${card.dataset.personId}`);
 });
 
+peopleList.addEventListener("keydown", event => { if (event.key === "Enter" && event.target.matches("[data-person-id]")) event.target.click(); });
+
 initProtectedPage({
   onReady: async ({ profile }) => {
     currentProfile = profile;
     await loadPeople();
+    await logActivityOnce("directory-view", "viewed_directory", null, { summary: "Opened the people directory" });
 
     const channel = subscribeTables(["people", "followups"], loadPeople);
     window.addEventListener("beforeunload", () => {

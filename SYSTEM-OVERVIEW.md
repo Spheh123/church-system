@@ -1,69 +1,15 @@
-# Church Follow-Up System Overview
+# System overview
 
-## Intake flow
+The existing implementation uses Supabase, not Firebase. Google Form and any existing Firebase intake must remain intact until their live data flow is verified. See DEPLOYMENT.md.
 
-1. A visitor fills in the Google Form.
-2. Google Form writes the response into Google Sheets.
-3. Apps Script listens for each new form submission.
-4. Apps Script sends the response to the Netlify intake endpoint.
-5. Netlify inserts the normalized record into Supabase `people`.
-6. Supabase automatically creates a default `followups` row for that person.
+Admin: creates accounts, generates/resets passwords, disables/restores access, assigns people, corrects profiles, reads all care records, reports and audit/session history.
 
-## What the system does next
+Pastor: reads church care records, assigns follow-ups, corrects profiles, views reports and audit/session history. Cannot create accounts, reset passwords or disable access.
 
-Once the person is inside Supabase:
+Team: reads only assigned people and related notes/history, updates follow-up statuses/dates and adds notes. Cannot reassign people or view staff login history.
 
-- the dashboard updates with live counts
-- the people page lists the record immediately
-- the follow-up board shows the person under `Not Called`
-- pastors and team members can add notes
-- admins and pastors can assign ownership
-- every change is written into `activity_logs`
+Database policies enforce permissions independently of the UI. Server functions validate the Supabase user and current active role before privileged work. The browser receives only the public anon key.
 
-## Main database objects
+Login sessions use the verified Auth session ID and server timestamps; IP/location come from Netlify context. Active duration is an estimate based on recent browser interaction. Sessions without explicit logout are labelled disconnected after their heartbeats stop.
 
-- `users`
-- `people`
-- `followups`
-- `followup_notes`
-- `activity_logs`
-- `people_overview` view
-
-## Role access
-
-`admin`
-- full access
-- create users
-- export reports
-
-`pastor`
-- view all people
-- update follow-ups
-- view reports
-
-`team`
-- only sees assigned people
-- updates statuses
-- adds notes
-
-## Core screens
-
-- `login.html`
-- `dashboard.html`
-- `people.html`
-- `person.html`
-- `followup.html`
-- `reports.html`
-
-## Team presentation summary
-
-"Google Form remains the intake front door. We do not need to change how visitors submit their details. Each response goes from Google Form to Google Sheets, then through Apps Script into our Netlify intake endpoint, and finally into Supabase. From there the church follow-up system takes over in real time for tracking, assignment, notes, accountability, and reporting."
-
-## Go-live checklist
-
-1. Run the SQL in `supabase/schema.sql`
-2. Set Supabase URL and anon key in `shared/config.js`
-3. Add Netlify environment variables
-4. Connect Apps Script to `/.netlify/functions/form-intake`
-5. Create the first admin in Supabase Auth and `public.users`
-6. Deploy to Netlify
+The strict password-policy trigger requires an admin-controlled metadata change in the same transaction as a password update. It must be verified on the hosted Auth version before staff rollout and after provider upgrades.

@@ -2,51 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Secure login for Streams of Joy Johannesburg Church Management System">
-  <title>Login | Streams of Joy Johannesburg CMS</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Staff workspace for Streams of Joy Johannesburg">
+  <title>Team Login | Streams of Joy Johannesburg</title>
+  <link rel="icon" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="login-body">
   <main class="login-layout">
     <section class="login-brand-panel">
-      <span class="eyebrow">Protected Ministry Workspace</span>
-      <h1>Church management built for care, follow-up, and accountability.</h1>
-      <p>Admins provision users manually. Sign in with your assigned email and password to access real-time pastoral records.</p>
-      <ul class="feature-list">
-        <li>Live people directory and follow-up records</li>
-        <li>Role-aware follow-up workflows</li>
-        <li>Audit logs for viewing, updates, and assignments</li>
-        <li>Daily and manual reporting to CSV or Google Sheets</li>
-      </ul>
-    </section>
-
-    <section class="login-card">
-      <div class="panel-heading">
-        <h2>Sign in</h2>
-        <span class="panel-meta">No public signup is enabled</span>
+      <a href="https://streamsofjoyjohannesburg.org/"><img class="church-logo" src="assets/church-logo.png" alt="Streams of Joy Johannesburg"></a>
+      <div class="login-brand-copy">
+        <span class="eyebrow">One church. Every person.</span>
+        <h1>Known.<br>Loved.<br><span>Connected.</span></h1>
+        <p>Behind every name is a life.<br>Let's make every connection count.</p>
       </div>
-      <form id="loginForm" class="form-grid">
-        <label>
-          Email
-          <input type="email" id="email" autocomplete="username" required>
-        </label>
-        <label>
-          Password
-          <input type="password" id="password" autocomplete="current-password" required>
-        </label>
-        <button type="submit" class="primary-action">Secure login</button>
+      <p class="church-motto">What God cannot do does not exist!</p>
+    </section>
+    <section class="login-card">
+      <a class="back-to-church" href="https://streamsofjoyjohannesburg.org/">← Back to church website</a>
+      <div class="login-heading"><span class="eyebrow">Team workspace</span><h2>Welcome back.</h2><p>Sign in to care for our community.</p></div>
+      <form id="loginForm" class="stack-form">
+        <label>Email address<input type="email" id="email" autocomplete="username" placeholder="you@example.com" required></label>
+        <label>Password<span class="password-input"><input type="password" id="password" autocomplete="current-password" required><button type="button" id="togglePassword" aria-label="Show password">Show</button></span></label>
+        <button type="submit" class="primary-action">Sign in to workspace <span aria-hidden="true">→</span></button>
       </form>
-      <div id="loginMessage" class="inline-alert hidden"></div>
-      <p class="login-footnote">Password resets are handled only by Admins or Pastors.</p>
-      <a class="text-link" href="intake.html">Open the public visitor form</a>
+      <div id="loginMessage" class="inline-alert hidden" role="alert" aria-live="polite"></div>
+      <p class="login-footnote">Need access or a new password?<br>Contact your church administrator.</p>
+      <div class="login-privacy">For authorised church staff.<br>Sign-ins, approximate location, device details and activity are recorded for accountability.</div>
     </section>
   </main>
-
   <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/login.js"></script>
+  <noscript>This workspace requires JavaScript. Please enable it to sign in.</noscript>
 </body>
 </html>

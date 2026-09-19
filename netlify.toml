@@ -1,5 +1,6 @@
 [build]
-publish = "."
+publish = "dist"
+command = "node scripts/build.cjs"
 functions = "netlify/functions"
 
 [[redirects]]
@@ -41,3 +42,9 @@ status = 301
 from = "/intake"
 to = "/main-app/intake.html"
 status = 301
+
+[build.environment]
+NODE_VERSION = "24"
+
+[functions]
+node_bundler = "esbuild"

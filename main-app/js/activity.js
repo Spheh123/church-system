@@ -1,88 +1,54 @@
-import { supabase } from "../../shared/supabase.js";
-import { appConfig } from "../../shared/config.js";
-
+import { supabase } from '../../shared/supabase.js';
+import { appConfig } from '../../shared/config.js';
 let currentProfile = null;
-const sessionStartKey = "soj-session-start";
-const sessionUserKey = "soj-session-user";
-
-export function setActivityProfile(profile) {
-  currentProfile = profile;
+let lastInteraction = Date.now();
+let inFlight = false;
+for (const event of ['pointerdown', 'keydown', 'scroll', 'touchstart']) {
+  window.addEventListener(event, () => { lastInteraction = Date.now(); }, { passive: true });
 }
-
-function ensureSessionStart() {
-  if (!currentProfile?.id) {
-    return false;
-  }
-
-  const currentSessionUser = sessionStorage.getItem(sessionUserKey);
-  if (currentSessionUser === currentProfile.id && sessionStorage.getItem(sessionStartKey)) {
-    return false;
-  }
-
-  sessionStorage.setItem(sessionUserKey, currentProfile.id);
-  sessionStorage.setItem(sessionStartKey, Date.now().toString());
-  return true;
-}
-
+export function setActivityProfile(profile) { currentProfile = profile; }
 export async function logActivity(action, personId = null, details = {}) {
-  if (!currentProfile?.id) {
-    return;
-  }
-
-  const payload = {
-    user_id: currentProfile.id,
-    action,
-    person_id: personId,
-    details,
-  };
-
-  const { error } = await supabase.from("activity_logs").insert(payload);
-
-  if (error) {
-    console.warn("Activity log failed", error);
-  }
+  if (!currentProfile?.id) return;
+  const { error } = await supabase.from('activity_logs').insert({ user_id: currentProfile.id, action, person_id: personId, details });
+  if (error) console.warn('Activity log failed', error.message);
 }
-
 export async function logActivityOnce(cacheKey, action, personId = null, details = {}, ttlMs = appConfig.activityThrottleMs) {
-  const now = Date.now();
-  const lastLoggedAt = Number(sessionStorage.getItem(cacheKey) || 0);
-  if (now - lastLoggedAt < ttlMs) {
-    return;
-  }
-
-  sessionStorage.setItem(cacheKey, String(now));
+  const key = `${currentProfile?.id}:${cacheKey}`;
+  if (Date.now() - Number(sessionStorage.getItem(key) || 0) < ttlMs) return;
   await logActivity(action, personId, details);
+  sessionStorage.setItem(key, String(Date.now()));
 }
-
-export async function touchPresence(markLogin = false) {
-  const { error } = await supabase.rpc("touch_my_presence", { mark_login: markLogin });
-  if (error) {
-    console.warn("Presence update failed", error);
-  }
-}
-
-export async function recordLogin() {
-  const isFreshSession = ensureSessionStart();
-  await touchPresence(true);
-
-  if (isFreshSession) {
-    await logActivity("login", null, { summary: "Signed into the follow-up workspace" });
-  }
-}
-
-export async function recordLogout() {
-  if (!currentProfile?.id) {
-    return;
-  }
-
-  const startedAt = Number(sessionStorage.getItem(sessionStartKey) || Date.now());
-  const durationSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
-
-  await logActivity("logout", null, {
-    summary: "Signed out of the follow-up workspace",
-    duration_seconds: durationSeconds,
+async function sessionEvent(action) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const response = await fetch('/.netlify/functions/session', {
+    method: 'POST', signal: AbortSignal.timeout(10000),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ action, active: !document.hidden && Date.now() - lastInteraction < 120000 }),
   });
-
-  sessionStorage.removeItem(sessionStartKey);
-  sessionStorage.removeItem(sessionUserKey);
+  if (!response.ok) {
+    if (response.status === 403) {
+      await supabase.auth.signOut();
+      window.location.assign('login.html');
+    }
+    throw new Error('Session tracking unavailable');
+  }
 }
+export async function touchPresence() {
+  if (inFlight || !currentProfile) return;
+  inFlight = true;
+  try {
+    await sessionEvent('heartbeat');
+    document.getElementById('trackingWarning')?.remove();
+  } catch (error) {
+    if (!document.getElementById('trackingWarning')) {
+      const warning = document.createElement('p');
+      warning.id = 'trackingWarning'; warning.className = 'inline-alert error'; warning.role = 'status';
+      warning.textContent = 'Login tracking is unavailable. Please tell your administrator; this session may be incomplete.';
+      (document.querySelector('.page-content') || document.body).prepend(warning);
+    }
+    console.warn(error.message);
+  } finally { inFlight = false; }
+}
+export async function recordLogin() { await touchPresence(); }
+export async function recordLogout() { await sessionEvent('logout'); }

@@ -1,6 +1,6 @@
 import { supabase } from "../../shared/supabase.js";
 import { appConfig, statusLabels } from "../../shared/config.js";
-import { clearMessage, escapeHtml, formatTimestamp, initProtectedPage, populateStatusSelect, setMessage } from "./auth.js";
+import { readAllRows, clearMessage, escapeHtml, formatTimestamp, initProtectedPage, populateStatusSelect, setMessage, apiRequest, subscribeTables } from "./auth.js";
 import { logActivity } from "./activity.js";
 
 const exportFilteredReportButton = document.getElementById("exportFilteredReportButton");
@@ -19,8 +19,8 @@ let rows = [];
 function filteredRows() {
   return rows.filter((row) => {
     const createdAt = row.created_at ? new Date(row.created_at) : null;
-    const startOk = !reportStartDate.value || (createdAt && createdAt >= new Date(reportStartDate.value));
-    const endOk = !reportEndDate.value || (createdAt && createdAt <= new Date(`${reportEndDate.value}T23:59:59`));
+    const startOk = !reportStartDate.value || (createdAt && createdAt >= new Date(`${reportStartDate.value}T00:00:00+02:00`));
+    const endOk = !reportEndDate.value || (createdAt && createdAt <= new Date(`${reportEndDate.value}T23:59:59.999+02:00`));
     const statusOk = !reportStatus.value || row.status === reportStatus.value;
     const assigneeOk = !reportAssignee.value || row.assigned_to === reportAssignee.value;
     return startOk && endOk && statusOk && assigneeOk;
@@ -61,10 +61,7 @@ function renderPreview() {
 }
 
 async function loadRows() {
-  const { data, error } = await supabase.from("people_overview").select("*").order("created_at", { ascending: false });
-  if (error) {
-    throw error;
-  }
+  const data = await readAllRows("people_overview", "*", "created_at");
 
   rows = data ?? [];
   renderSummary();
@@ -135,7 +132,7 @@ function toCsv(items) {
     "last_contacted",
     "created_at",
   ];
-  const escapeCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const escapeCell = (value) => { let text = String(value ?? ""); if (/^[\s]*[=+@-]/.test(text)) text = "\'" + text; return `"${text.replaceAll('"', '""')}"`; };
   return [headers.join(","), ...items.map((item) => headers.map((header) => escapeCell(item[header])).join(","))].join("\n");
 }
 
@@ -170,26 +167,14 @@ exportFilteredReportButton.addEventListener("click", async () => {
 sendToSheetsButton.addEventListener("click", async () => {
   clearMessage(reportMessage);
 
-  const response = await fetch(appConfig.formWebhookPath, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      mode: "report_export",
-      rows: filteredRows(),
-    }),
-  });
+  sendToSheetsButton.disabled = true;
+  try {
+    const result = await apiRequest('/.netlify/functions/report-export', { start: reportStartDate.value, end: reportEndDate.value, status: reportStatus.value, assignee: reportAssignee.value });
+    setMessage(reportMessage, result.count + ' records sent to Google Sheets.', 'success');
+    await loadHistory();
+  } catch (error) { setMessage(reportMessage, error.message, 'error'); }
+  finally { sendToSheetsButton.disabled = false; }
 
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    setMessage(reportMessage, result.error || "Could not send report to Google Sheets.", "error");
-    return;
-  }
-
-  setMessage(reportMessage, "Report sent to Google Sheets.", "success");
-  await logActivity("report_sent_to_sheets", null, { summary: "Sent filtered report to Google Sheets" });
-  await loadHistory();
 });
 
 initProtectedPage({

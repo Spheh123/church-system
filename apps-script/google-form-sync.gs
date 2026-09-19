@@ -1,6 +1,8 @@
-function onFormSubmit(e) {
+function syncVisitorToChurchWorkspace(e) {
   var values = e.namedValues || {};
   var payload = {
+    source_id: e.source.getId() + ":" + e.range.getSheet().getSheetId() + ":" + e.range.getRow(),
+    timestamp: firstValue(values, ["Timestamp"]),
     full_name: firstValue(values, ["Full Name and Surname", "Full Name", "Name", "Full name"]),
     email: firstValue(values, ["Email", "Email Address", "Email address"]),
     phone: firstValue(values, ["Cell phone number", "Cellphone Number", "Cell phone number ", "Phone", "Cellphone", "Phone Number"]),
@@ -36,7 +38,7 @@ function onFormSubmit(e) {
     secret: PropertiesService.getScriptProperties().getProperty("FORM_WEBHOOK_SECRET")
   };
 
-  UrlFetchApp.fetch("https://YOUR-NETLIFY-SITE.netlify.app/.netlify/functions/form-intake", {
+  var response = UrlFetchApp.fetch("https://sojjdatabasesoftware.netlify.app/.netlify/functions/form-intake", {
     method: "post",
     contentType: "application/json",
     payload: JSON.stringify(payload),
@@ -45,6 +47,7 @@ function onFormSubmit(e) {
     },
     muteHttpExceptions: true
   });
+  if (response.getResponseCode() >= 300) throw new Error("Visitor sync failed: " + response.getContentText());
 }
 
 function firstValue(namedValues, candidates) {

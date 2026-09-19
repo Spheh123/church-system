@@ -1,16 +1,5 @@
-function json(statusCode, body) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type, x-form-secret",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-    },
-    body: JSON.stringify(body),
-  };
-}
-
+const { api, parseBody, handler, HttpError } = require('./lib/server');
+const { timingSafeEqual } = require('node:crypto');
 function pick(source, keys) {
   for (const key of keys) {
     if (source[key] !== undefined && source[key] !== null && source[key] !== "") {
@@ -84,105 +73,27 @@ function normalizePerson(source) {
   };
 }
 
-async function insertPerson(person, env) {
-  const primaryPayload = {
-    ...person,
-    area: person.area_of_residence,
-  };
 
-  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/people`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-    body: JSON.stringify(primaryPayload),
-  });
-
-  const data = await response.json();
-
-  if (response.ok) {
-    return {
-      ok: true,
-      data,
-    };
-  }
-
-  const message = data?.message || "";
-  const missingAreaOfResidence = message.includes("area_of_residence");
-
-  if (!missingAreaOfResidence) {
-    return {
-      ok: false,
-      data,
-    };
-  }
-
-  const fallbackPayload = { ...person };
-  delete fallbackPayload.area_of_residence;
-  fallbackPayload.area = person.area_of_residence;
-
-  const fallbackResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/people`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-    body: JSON.stringify(fallbackPayload),
-  });
-
-  return {
-    ok: fallbackResponse.ok,
-    data: await fallbackResponse.json(),
-  };
-}
-
-exports.handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return json(200, { ok: true });
-  }
-
-  if (event.httpMethod !== "POST") {
-    return json(405, { error: "Method not allowed" });
-  }
-
-  const payload = JSON.parse(event.body || "{}");
-
-  if (payload.mode === "report_export") {
-    if (!process.env.GOOGLE_SHEETS_WEBHOOK_URL) {
-      return json(400, { error: "GOOGLE_SHEETS_WEBHOOK_URL is not configured" });
-    }
-
-    const response = await fetch(process.env.GOOGLE_SHEETS_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    return json(response.ok ? 200 : 400, await response.json().catch(() => ({ ok: response.ok })));
-  }
-
-  const expectedSecret = process.env.FORM_WEBHOOK_SECRET;
-  const suppliedSecret = event.headers["x-form-secret"] || payload.secret;
-  const isPublicBrowserSubmission = payload.source === "public_form";
-
-  if (expectedSecret && !isPublicBrowserSubmission && suppliedSecret !== expectedSecret) {
-    return json(401, { error: "Invalid form secret" });
-  }
-
+exports.handler = handler(async event => {
+  const payload = parseBody(event);
+  if (payload.mode === 'report_export') throw new HttpError(400, 'Use the authenticated report endpoint.');
+  const expected = process.env.FORM_WEBHOOK_SECRET;
+  if (!expected) throw new HttpError(503, 'Form intake is not configured.');
+  const supplied = event.headers['x-form-secret'] || payload.secret || '';
+  if (typeof supplied !== 'string' || Buffer.byteLength(supplied) !== Buffer.byteLength(expected) || !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) throw new HttpError(401, 'Invalid form secret.');
   const person = normalizePerson(payload);
-  if (!person.full_name) {
-    return json(400, { error: "full_name is required" });
+  if (typeof person.full_name !== 'string' || !person.full_name.trim()) throw new HttpError(400, 'A name is required.');
+  for (const [key,value] of Object.entries(person)) {
+    if (value !== null && typeof value !== 'string') throw new HttpError(400, 'Invalid field: ' + key);
+    if (value?.length > (['prayer_points','service_feedback','invite_details'].includes(key) ? 10000 : 500)) throw new HttpError(400, 'Field is too long: ' + key);
   }
-
-  const result = await insertPerson(person, process.env);
-  if (!result.ok) {
-    return json(400, { error: result.data?.message || "Could not insert person" });
+  if (payload.source_id) {
+    if (typeof payload.source_id !== 'string' || payload.source_id.length > 250) throw new HttpError(400, 'Invalid source ID.');
+    person.source_id = payload.source_id;
   }
-
-  return json(200, { ok: true, person: result.data?.[0] ?? null });
-};
+  if (payload.timestamp) person.source_timestamp = String(payload.timestamp).slice(0,150);
+  const rawDate = payload.createdAt || payload.created_at;
+  if (rawDate && !Number.isNaN(new Date(rawDate).getTime())) person.created_at = new Date(rawDate).toISOString();
+  const data = await api('/rest/v1/people' + (person.source_id ? '?on_conflict=source_id' : ''), { method: 'POST', prefer: 'return=representation,resolution=ignore-duplicates', body: person });
+  return { ok: true, duplicate: !data?.length, person_id: data?.[0]?.id || null };
+});

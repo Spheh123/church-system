@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="robots" content="noindex,nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Leadership dashboard for Streams of Joy Johannesburg Church Management System">
@@ -8,7 +9,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -17,8 +18,8 @@
       <section class="hero-panel dashboard-hero">
         <div class="hero-copy">
           <span class="eyebrow">Ministry Oversight</span>
-          <h1>Welcome to the follow-up command centre</h1>
-          <p>See new submissions, prayer needs, team movement, and follow-up progress in one clear workspace designed for pastoral care.</p>
+          <h1>A warm welcome.<br>A lasting connection.</h1>
+          <p>Care for our people, support your team, and see every next step in one place.</p>
           <div class="hero-actions">
             <a class="primary-action" href="people.html">Open people directory</a>
             <a class="secondary-action" href="followup.html">Open follow-up board</a>
@@ -30,7 +31,7 @@
       <section class="grid-layout spotlight-grid">
         <article class="panel">
           <div class="panel-heading">
-            <h2>New This Week</h2>
+            <h2>New in the Last 48 Hours</h2>
             <span class="panel-meta">Fresh people needing welcome and follow-through</span>
           </div>
           <div id="newVisitorsList" class="stack-list"></div>
@@ -63,6 +64,7 @@
         </article>
       </section>
 
+      <section class="panel"><div class="panel-heading"><h2>Overdue Follow-ups</h2><span class="panel-meta">People needing the next conversation</span></div><div id="overdueList" class="stack-list"></div></section>
       <section class="grid-layout admin-grid">
         <article class="panel">
           <div class="panel-heading">
@@ -97,6 +99,11 @@
         </article>
       </section>
 
+      <section class="panel">
+        <div class="panel-heading"><h2>Staff Login History</h2><span class="panel-meta">Visible to admins and pastors</span></div>
+        <p class="muted-text">Location is approximate. Active time is estimated from interaction and heartbeats. Disconnected sessions show the last observed time, not a confirmed logout.</p>
+        <div id="sessionHistory"></div>
+      </section>
       <section class="panel">
         <div class="panel-heading">
           <h2>System Activity</h2>

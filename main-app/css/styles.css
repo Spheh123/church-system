@@ -1,16 +1,16 @@
 :root {
-  --bg: #f5f1eb;
-  --bg-accent: #efe3d3;
-  --surface: #fffdfa;
-  --surface-alt: #fff6ec;
-  --surface-strong: #251b15;
-  --text: #241a16;
-  --muted: #705d53;
-  --border: rgba(97, 68, 53, 0.16);
-  --shadow: 0 20px 45px rgba(74, 48, 35, 0.12);
-  --brand: #8a1538;
-  --brand-dark: #5f0f26;
-  --accent: #cc8b2f;
+  --bg: #f3f6fa;
+  --bg-accent: #e3edf4;
+  --surface: #ffffff;
+  --surface-alt: #f0f5f9;
+  --surface-strong: #10294c;
+  --text: #172c45;
+  --muted: #617185;
+  --border: rgba(18, 49, 94, 0.16);
+  --shadow: 0 20px 45px rgba(18, 49, 94, 0.12);
+  --brand: #12315e;
+  --brand-dark: #0d2446;
+  --accent: #c19a4a;
   --success: #146c43;
   --warning: #a55b00;
   --danger: #c13333;
@@ -35,7 +35,7 @@ body {
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(204, 139, 47, 0.18), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(138, 21, 56, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(18, 49, 94, 0.18), transparent 30%),
     linear-gradient(180deg, #fbf6ef 0%, #f2ece4 100%);
 }
 
@@ -88,8 +88,8 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: rgba(138, 21, 56, 0.48);
-  box-shadow: 0 0 0 4px rgba(138, 21, 56, 0.08);
+  border-color: rgba(18, 49, 94, 0.48);
+  box-shadow: 0 0 0 4px rgba(18, 49, 94, 0.08);
 }
 
 textarea {
@@ -143,13 +143,13 @@ textarea {
 
 .primary-action {
   color: #fff;
-  background: linear-gradient(135deg, var(--brand) 0%, #b62452 100%);
-  box-shadow: 0 16px 25px rgba(138, 21, 56, 0.22);
+  background: linear-gradient(135deg, var(--brand) 0%, #244e7d 100%);
+  box-shadow: 0 16px 25px rgba(18, 49, 94, 0.22);
 }
 
 .secondary-action {
   color: var(--brand);
-  background: rgba(138, 21, 56, 0.08);
+  background: rgba(18, 49, 94, 0.08);
 }
 
 .ghost-action {
@@ -273,7 +273,7 @@ textarea {
 .login-card,
 .login-brand-panel,
 .splash-card {
-  background: rgba(255, 253, 250, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow);
@@ -299,7 +299,7 @@ textarea {
   align-items: stretch;
   background:
     radial-gradient(circle at top right, rgba(204, 139, 47, 0.12), transparent 26%),
-    linear-gradient(140deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 246, 236, 0.94) 100%);
+    linear-gradient(140deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 246, 236, 0.94) 100%);
 }
 
 .hero-copy {
@@ -340,7 +340,7 @@ textarea {
 .metric-card {
   min-width: 170px;
   padding: 1rem 1.1rem;
-  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,246,236,0.9) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(242,247,251,0.9) 100%);
 }
 
 .metric-card h3,
@@ -493,8 +493,8 @@ textarea {
 .note-item {
   padding: 1rem;
   border-radius: var(--radius-md);
-  background: rgba(255, 250, 244, 0.92);
-  border: 1px solid rgba(97, 68, 53, 0.1);
+  background: rgba(247, 250, 253, 0.92);
+  border: 1px solid rgba(18, 49, 94, 0.1);
 }
 
 .timeline-list .timeline-item,
@@ -512,8 +512,8 @@ textarea {
   gap: 0.9rem;
   padding: 1rem 1.1rem;
   border-radius: var(--radius-lg);
-  background: rgba(255, 250, 244, 0.92);
-  border: 1px solid rgba(97, 68, 53, 0.1);
+  background: rgba(247, 250, 253, 0.92);
+  border: 1px solid rgba(18, 49, 94, 0.1);
 }
 
 .directory-person-top {
@@ -539,7 +539,7 @@ textarea {
   padding: 1rem;
   border-radius: var(--radius-md);
   background: var(--surface-alt);
-  border: 1px solid rgba(97, 68, 53, 0.1);
+  border: 1px solid rgba(18, 49, 94, 0.1);
 }
 
 .kanban-board {
@@ -556,7 +556,7 @@ textarea {
   min-width: 250px;
   padding: 1rem;
   border-radius: var(--radius-xl);
-  background: rgba(255, 253, 250, 0.78);
+  background: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
@@ -578,7 +578,7 @@ textarea {
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
   text-align: center;
-  background: rgba(138, 21, 56, 0.1);
+  background: rgba(18, 49, 94, 0.1);
   color: var(--brand);
   font-weight: 800;
 }
@@ -594,9 +594,9 @@ textarea {
   gap: 0.8rem;
   padding: 1rem;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(97, 68, 53, 0.12);
-  background: rgba(255, 250, 244, 0.96);
-  box-shadow: 0 12px 25px rgba(74, 48, 35, 0.08);
+  border: 1px solid rgba(18, 49, 94, 0.12);
+  background: rgba(247, 250, 253, 0.96);
+  box-shadow: 0 12px 25px rgba(18, 49, 94, 0.08);
 }
 
 .filter-panel {
@@ -612,7 +612,7 @@ textarea {
 
 .detail-header {
   padding: 1.2rem 1.4rem;
-  background: rgba(255, 253, 250, 0.85);
+  background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow);
@@ -633,7 +633,7 @@ textarea {
 .detail-item {
   padding: 0.9rem;
   border-radius: var(--radius-md);
-  background: rgba(255, 248, 240, 0.7);
+  background: rgba(242, 247, 251, 0.7);
 }
 
 .detail-item span {
@@ -690,7 +690,7 @@ textarea {
   display: grid;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(97, 68, 53, 0.12);
+  border: 1px solid rgba(18, 49, 94, 0.12);
 }
 
 .table-header,
@@ -729,7 +729,7 @@ textarea {
 .table-row:nth-child(even),
 .user-table-row:nth-child(even),
 .access-table-row:nth-child(even) {
-  background: rgba(255, 248, 240, 0.58);
+  background: rgba(242, 247, 251, 0.58);
 }
 
 .quick-editor {
@@ -739,11 +739,11 @@ textarea {
 
 .empty-state {
   padding: 2rem;
-  border: 2px dashed rgba(97, 68, 53, 0.2);
+  border: 2px dashed rgba(18, 49, 94, 0.2);
   border-radius: var(--radius-xl);
   text-align: center;
   color: var(--muted);
-  background: rgba(255, 253, 250, 0.65);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .auth-problem {
@@ -910,3 +910,123 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* Shared church identity: navy, sky blue, gold and white. */
+:root { --shadow: 0 5px 22px rgba(18,49,94,.045); --radius-xl: 16px; --radius-lg: 12px; --radius-md: 10px; --radius-sm: 8px; }
+body { font-family: 'Poppins', sans-serif; background: #f3f6fa; font-size: 14px; line-height: 1.6; }
+h1,h2,h3 { font-family: 'Montserrat',sans-serif; line-height: 1.2; }
+button:disabled { opacity: .55; cursor: wait; }
+a:focus-visible, button:focus-visible { outline: 3px solid #75aac6; outline-offset: 4px; }
+.church-logo { width: 188px; height: auto; display: block; }
+.app-shell.shell-ready { grid-template-columns: 248px minmax(0,1fr); }
+.sidebar { background: #10294c; display:flex; flex-direction:column; padding: 30px 18px; color:#fff; }
+.brand-block { background: none; border: 0; padding: 5px 12px 30px; border-bottom: 1px solid #ffffff20; border-radius:0; }
+.brand-block .eyebrow { color: #a7c9de; font-size:10px; margin-top:30px; }
+.brand-block p { font-size:12px; color:#a7bed4; }
+.sidebar-footer { margin-top:auto; font-size:12px; overflow-wrap:anywhere; }
+.sidebar-footer .muted-text { color:#b6c9dd; }
+.nav-link { font-size:13px; font-weight:500; border-radius:8px; }
+.nav-link.active { background:#ffffff14; box-shadow:inset 3px 0 #f3d38b; }
+.topbar { background:#fff; padding:22px 32px; border-bottom:1px solid var(--border); }
+.topbar h1 { font-size:21px; }
+.topbar .eyebrow { font-size:9px; color:var(--muted); }
+.eyebrow { font-size:10px; letter-spacing:.18em; }
+.panel h2 { font-size:17px; }
+.panel-heading { align-items:start; flex-wrap:wrap; gap:8px; }
+.panel-meta { font-size:11px; }
+.page-content { padding:28px 32px; gap:22px; }
+.dashboard-hero { flex-direction:column; background:#fff; position:relative; overflow:hidden; padding:32px; border-top:3px solid #75aac6; }
+.hero-copy h1 { font-size:clamp(28px,3vw,40px); line-height:1.15; letter-spacing:-.035em; }
+.hero-copy p { font-size:13px; max-width:520px; }
+.hero-actions { justify-content:flex-start; }
+.executive-summary { grid-template-columns:repeat(4,minmax(0,1fr)); min-width:0; margin-top:12px; }
+.metric-card { min-width:0; background:#f4f7fb; border:0; box-shadow:none; border-radius:8px; }
+.metric-card .muted-text { font-size:11px; }
+.metric-card strong { font-size:30px; color:#12315e; }
+.primary-action { background:#12315e; box-shadow:none; border-radius:8px; font-size:12px; }
+.primary-action:hover { background:#214a78; }
+.secondary-action,.ghost-action { border-radius:8px; font-size:12px; }
+.secondary-action { background:#eaf1f7; }
+.status-badge { font-size:10px; white-space:normal; }
+.summary-pill { background:#f5f8fb; }
+.summary-pill strong { font-family:'Montserrat',sans-serif; font-size:22px; }
+.stack-item,.directory-person-card,.timeline-item,.note-item { background:#f8fafc; border-color:#e6edf3; }
+.stack-item strong { font-size:13px; }
+.card { cursor:pointer; }
+.card,.detail-item,.prayer-highlight,.stack-item { overflow-wrap:anywhere; }
+.card h3 { font-size:17px; }
+.card-meta { font-size:12px; }
+.prayer-highlight { font-size:12px; margin-top:8px; }
+.connection-status { color:#42647e; font-size:11px; }
+.connection-status::before { content:''; width:6px; height:6px; border-radius:50%; display:inline-block; background:#75aac6; margin-right:6px; }
+.session-table-wrap { overflow-x:auto; }
+.session-table { width:100%; border-collapse:collapse; font-size:12px; min-width:720px; }
+.session-table th { text-align:left; background:#f0f5f9; font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
+.session-table th,.session-table td { padding:14px 12px; border-bottom:1px solid #e6edf3; vertical-align:top; }
+.session-table small { display:block; color:var(--muted); margin-top:5px; }
+.session-table details { max-width:230px; overflow-wrap:anywhere; }
+.session-table summary { color:var(--brand); cursor:pointer; }
+.login-body { padding:0; background:#fff; }
+.login-layout { width:100%; min-height:100vh; grid-template-columns:1.05fr 1fr; gap:0; }
+.login-brand-panel { border:0; border-radius:0; box-shadow:none; min-height:100vh; padding:48px 60px 30px; display:flex; flex-direction:column; background:linear-gradient(180deg,rgba(6,22,43,.7),rgba(6,22,43,.93)),url('../assets/church-worship.jpeg') center/cover; }
+.login-brand-copy { margin:auto 0; padding:70px 0; }
+.login-brand-copy .eyebrow { color:#b9d3e4; }
+.login-brand-copy h1 { margin:24px 0; font-size:clamp(44px,5.8vw,82px); font-weight:800; letter-spacing:-.045em; line-height:1.03; color:#fff; }
+.login-brand-copy h1 span { color:#f3d38b; }
+.login-brand-copy p { color:#d7e1eb; font-size:15px; line-height:1.8; }
+.church-motto { text-transform:uppercase; letter-spacing:.1em; font-size:9px; color:#e9e8de; }
+.login-card { max-width:470px; width:100%; justify-self:center; padding:45px; border:0; border-radius:0; box-shadow:none; background:#fff; }
+.back-to-church { color:var(--muted); font-size:11px; display:block; margin-bottom:60px; }
+.login-heading h2 { font-size:34px; letter-spacing:-.04em; margin:14px 0 10px; }
+.login-heading p { color:var(--muted); font-size:13px; margin-bottom:30px; }
+.login-card label { font-size:12px; font-weight:500; }
+.login-card input { background:#f8fafc; border:1px solid #d9e2eb; font-size:13px; padding:14px; }
+.login-card .primary-action { width:100%; justify-content:space-between; padding:16px 20px; margin-top:10px; }
+.password-input { display:flex; position:relative; }
+.password-input input { padding-right:65px; }
+.password-input button { position:absolute; right:12px; top:22px; border:0; background:none; color:var(--brand); font-size:11px; padding:3px; }
+.login-footnote { font-size:11px; line-height:1.8; margin:24px 0; }
+.login-privacy { border-top:1px solid #e3eaf0; padding-top:20px; color:#617185; font-size:10px; }
+@media(max-width:1180px) { .executive-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:980px) {
+ .app-shell.shell-ready { grid-template-columns:1fr; }
+ .sidebar { position:relative; height:auto; padding:15px 20px; }
+ .brand-block { padding:0; margin:0 0 15px; border:0; }
+ .brand-block .church-logo { width:145px; }
+ .brand-block .eyebrow,.brand-block p,.sidebar-footer { display:none; }
+ .sidebar-nav { display:flex; overflow:auto; gap:6px; }
+ .nav-link { white-space:nowrap; padding:10px; font-size:11px; }
+ .topbar { flex-direction:row; padding:18px 20px; }
+ .login-brand-panel { padding:40px 28px; }
+ .login-card { padding:36px 28px; }
+ .login-brand-copy h1 { font-size:54px; }
+ .panel-heading { display:block; }
+ .panel-meta { display:block; margin-top:8px; }
+}
+@media(max-width:640px) {
+ .login-layout { display:block; }
+ .login-brand-panel { min-height:0; padding:25px; }
+ .login-brand-panel .church-logo { width:150px; }
+ .login-brand-copy { padding:32px 0 6px; }
+ .login-brand-copy h1 { font-size:40px; }
+ .login-brand-copy h1 br { display:none; }
+ .login-brand-copy h1 { word-spacing:5px; }
+ .login-brand-copy p,.church-motto { display:none; }
+ .login-card { padding:30px 25px; }
+ .back-to-church { margin-bottom:30px; }
+ .page-content { padding:18px 14px; }
+ .dashboard-hero { padding:22px; }
+ .executive-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .topbar h1 { font-size:17px; }
+ .connection-status { display:none; }
+ .hero-copy h1 { font-size:28px; }
+ .detail-actions { flex-wrap:wrap; }
+ .filter-panel { position:static; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+
+.preview-notice { position:sticky; top:0; z-index:1000; background:#f3d38b; color:#12315e; padding:8px 15px; text-align:center; font-size:10px; font-weight:700; }
+.kanban-board { grid-template-columns:repeat(8,minmax(230px,1fr)); }
+@media(max-width:980px) { .kanban-board { grid-template-columns:1fr; } }
+.page-content { grid-template-columns:minmax(0,1fr); }
+.page-content > *, .grid-layout > *, .hero-copy { min-width:0; }

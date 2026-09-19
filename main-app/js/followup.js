@@ -1,6 +1,6 @@
 import { supabase } from "../../shared/supabase.js";
 import { followUpBoardColumns, statusLabels } from "../../shared/config.js";
-import { escapeHtml, formatTimestamp, getStatusBadge, initProtectedPage, subscribeTables } from "./auth.js";
+import { readAllRows, escapeHtml, formatTimestamp, getStatusBadge, initProtectedPage, subscribeTables } from "./auth.js";
 import { logActivity } from "./activity.js";
 
 const boardSearch = document.getElementById("boardSearch");
@@ -90,10 +90,7 @@ function renderBoard() {
 }
 
 async function loadBoard() {
-  const { data, error } = await supabase.from("people_overview").select("*").order("updated_at", { ascending: false });
-  if (error) {
-    throw error;
-  }
+  const data = await readAllRows("people_overview", "*", "updated_at");
 
   people = data ?? [];
   renderBoard();
@@ -106,7 +103,7 @@ async function updateStatus(personId, nextStatus) {
     updated_at: new Date().toISOString(),
   };
 
-  if (nextStatus !== "not_called") {
+  if (["contacted", "feedback_given", "completed"].includes(nextStatus)) {
     payload.last_contacted = new Date().toISOString();
   }
 
@@ -119,9 +116,7 @@ async function updateStatus(personId, nextStatus) {
     .update(payload)
     .eq("person_id", personId);
 
-  if (!error) {
-    await logActivity("status_changed", personId, { summary: `Moved to ${statusLabels[nextStatus]}` });
-  }
+  if (error) { throw error; }
 }
 
 boardSearch.addEventListener("input", renderBoard);
@@ -150,8 +145,8 @@ followupBoard.addEventListener("drop", async (event) => {
 
   event.preventDefault();
   const personId = event.dataTransfer.getData("text/plain");
-  await updateStatus(personId, column.dataset.status);
-  await loadBoard();
+  try { await updateStatus(personId, column.dataset.status); await loadBoard(); }
+  catch (error) { followupEmptyState.textContent = error.message; followupEmptyState.classList.remove("hidden"); }
 });
 
 initProtectedPage({
@@ -160,7 +155,6 @@ initProtectedPage({
 
     if (profile.role === "team") {
       followupAssignmentScope.innerHTML = `
-        <option value="incoming">Just came in</option>
         <option value="mine">My queue</option>
         <option value="all">All visible people</option>
       `;

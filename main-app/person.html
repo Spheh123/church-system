@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="robots" content="noindex,nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Person profile for Streams of Joy Johannesburg Church Management System">
@@ -8,7 +9,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -18,7 +19,7 @@
         <div>
           <a class="text-link" href="people.html">Back to people</a>
           <h1 id="personName">Loading profile...</h1>
-          <p id="personMeta" class="muted-text">Fetching Supabase details.</p>
+          <p id="personMeta" class="muted-text">Loading person details.</p>
         </div>
         <div class="detail-actions">
           <span id="profileStatusBadgeContainer"><span id="profileStatusBadge" class="status-badge">Pending</span></span>
@@ -30,9 +31,10 @@
         <article class="panel">
           <div class="panel-heading">
             <h2>Full Profile</h2>
-            <span class="panel-meta">Normalized intake fields</span>
+            <span class="panel-meta">Visitor information</span>
           </div>
           <div id="profileFields" class="detail-grid"></div>
+          <details id="profileEditor" class="hidden"><summary class="text-link">Correct profile details</summary><form id="profileEditForm" class="form-grid"><div id="profileEditFields" class="full-width form-grid"></div><button class="primary-action" type="submit">Save profile</button><div id="profileEditMessage" class="inline-alert hidden full-width" role="status"></div></form></details>
         </article>
 
         <article class="panel prayer-panel">
@@ -51,6 +53,7 @@
             <span class="panel-meta">Assign ownership and update status</span>
           </div>
           <form id="personUpdateForm" class="form-grid">
+            <label>Next follow-up date<input type="datetime-local" id="nextFollowupDate"></label>
             <label>
               Assigned to
               <select id="assignedToSelect"></select>
