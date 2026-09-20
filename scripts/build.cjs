@@ -4,7 +4,11 @@ const esbuild = require('esbuild');
 async function build({ output = 'dist', preview = false } = {}) {
   const root = path.resolve(output);
   fs.mkdirSync(root, { recursive: true });
-  fs.cpSync('main-app', path.join(root, 'main-app'), { recursive: true });
+  // Manuals are delivered only by the authenticated function, never static files.
+  fs.cpSync('main-app', path.join(root, 'main-app'), { recursive: true, filter: source => path.resolve(source) !== path.resolve('main-app/training') });
+  const oldManuals = path.join(root, 'main-app', 'training');
+  if (!oldManuals.startsWith(root + path.sep)) throw new Error('Invalid build output');
+  fs.rmSync(oldManuals, { recursive: true, force: true });
   fs.copyFileSync('main-app/_headers', path.join(root, '_headers'));
   const plugins = [{ name: 'configuration', setup(builder) {
     if (preview) builder.onResolve({ filter: /shared\/supabase\.js$/ }, () => ({ path: path.resolve('tests/fixtures/supabase.js') }));

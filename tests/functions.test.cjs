@@ -20,6 +20,18 @@ test('Unauthenticated requests cannot access admin or report endpoints',async()=
   global.fetch=async()=>{throw new Error('Must not call backend');};
   for(const file of ['admin-create-user','admin-reset-user-password','admin-manage-user','report-export']) assert.equal((await require('../netlify/functions/'+file).handler(event({},false))).statusCode,401);
 });
+test('Training content requires login and is limited by staff role',async()=>{
+ const endpoint=require('../netlify/functions/training-manuals').handler;
+ assert.equal((await endpoint(event({},false))).statusCode,401);
+ for(const role of ['team','admin','pastor']){
+  global.fetch=async url=>String(url).endsWith('/auth/v1/user')?response({id:staffId}):response([{id:staffId,role,is_active:true}]);
+  const result=await endpoint(event({}));
+  assert.equal(result.statusCode,200);
+  const guides=JSON.parse(result.body).guides;
+  assert.deepEqual(guides.map(g=>g.id),role==='team'?['team']:['admin','pastors','team','ushers']);
+ }
+});
+
 test('Failed account provisioning compensates only the newly created auth account',async()=>{
   const calls=[];
   global.fetch=async(url,options)=>{

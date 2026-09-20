@@ -53,3 +53,9 @@ status = 200
 
 [functions]
 node_bundler = "esbuild"
+
+[[redirects]]
+from = "/main-app/training/*"
+to = "/main-app/training.html"
+status = 302
+force = true
