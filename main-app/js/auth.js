@@ -15,7 +15,9 @@ let currentProfile = null;
 let heartbeatHandle = null;
 
 function currentFileName() {
-  return window.location.pathname.split("/").pop() || "index.html";
+  const name = window.location.pathname.split("/").pop() || "index.html";
+  // Netlify pretty URLs remove .html from links in served HTML.
+  return name.includes('.') ? name : `${name}.html`;
 }
 
 function navigateTo(target) {
