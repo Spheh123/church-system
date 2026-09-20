@@ -18,7 +18,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the exact database upgrade order, environ
 - Next-follow-up dates and overdue list
 - Real-time leadership and care views, with periodic refresh fallback
 - Database audit triggers for record edits, assignments and notes
-- CSV and authenticated Google Sheets exports; opt-in daily report schedule
+- Formatted Excel (.xlsx) visitor reports with column filters and all captured visitor fields
 - Existing statuses and visitor records preserved by additive upgrade scripts
 
 ## Development

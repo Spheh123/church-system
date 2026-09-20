@@ -1,10 +1,10 @@
 import { supabase } from "../../shared/supabase.js";
-import { appConfig, statusLabels } from "../../shared/config.js";
-import { readAllRows, clearMessage, escapeHtml, formatTimestamp, initProtectedPage, populateStatusSelect, setMessage, apiRequest, subscribeTables } from "./auth.js";
+import { statusLabels } from "../../shared/config.js";
+import { readAllRows, clearMessage, escapeHtml, formatTimestamp, initProtectedPage, populateStatusSelect, setMessage } from "./auth.js";
 import { logActivity } from "./activity.js";
 
 const exportFilteredReportButton = document.getElementById("exportFilteredReportButton");
-const sendToSheetsButton = document.getElementById("sendToSheetsButton");
+
 const reportSummary = document.getElementById("reportSummary");
 const reportMessage = document.getElementById("reportMessage");
 const exportHistory = document.getElementById("exportHistory");
@@ -120,33 +120,6 @@ async function loadHistory() {
     : `<div class="empty-state">No report actions logged yet.</div>`;
 }
 
-function toCsv(items) {
-  const headers = [
-    "full_name",
-    "email",
-    "phone",
-    "area_of_residence",
-    "prayer_points",
-    "status",
-    "assigned_name",
-    "last_contacted",
-    "created_at",
-  ];
-  const escapeCell = (value) => { let text = String(value ?? ""); if (/^[\s]*[=+@-]/.test(text)) text = "\'" + text; return `"${text.replaceAll('"', '""')}"`; };
-  return [headers.join(","), ...items.map((item) => headers.map((header) => escapeCell(item[header])).join(","))].join("\n");
-}
-
-function downloadCsv() {
-  const visible = filteredRows();
-  const blob = new Blob([toCsv(visible)], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "church-followup-report.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 [reportStartDate, reportEndDate, reportStatus, reportAssignee].forEach((element) => {
   element.addEventListener("change", () => {
     renderSummary();
@@ -158,23 +131,26 @@ populateStatusSelect(reportStatus, "", true);
 
 exportFilteredReportButton.addEventListener("click", async () => {
   clearMessage(reportMessage);
-  downloadCsv();
-  setMessage(reportMessage, "CSV export downloaded.", "success");
-  await logActivity("report_exported", null, { summary: "Exported filtered follow-up CSV" });
-  await loadHistory();
-});
-
-sendToSheetsButton.addEventListener("click", async () => {
-  clearMessage(reportMessage);
-
-  sendToSheetsButton.disabled = true;
+  if (reportStartDate.value && reportEndDate.value && reportStartDate.value > reportEndDate.value) {
+    setMessage(reportMessage, "The start date must be before the end date.", "error"); return;
+  }
+  exportFilteredReportButton.disabled = true;
   try {
-    const result = await apiRequest('/.netlify/functions/report-export', { start: reportStartDate.value, end: reportEndDate.value, status: reportStatus.value, assignee: reportAssignee.value });
-    setMessage(reportMessage, result.count + ' records sent to Google Sheets.', 'success');
+    await loadRows();
+    const visible = filteredRows();
+    if (!visible.length) { setMessage(reportMessage, "No records match this report. Adjust the filters and try again.", "error"); return; }
+    const { reportBuffer } = await import('./report-workbook.js');
+    const buffer = await reportBuffer(visible, statusLabels);
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'church-visitor-report-' + new Date().toISOString().slice(0,10) + '.xlsx';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    setMessage(reportMessage, visible.length + ' records exported to Excel. Use the arrows in the column headings to filter inside Excel.', 'success');
+    await logActivity('report_exported', null, { summary: 'Exported ' + visible.length + ' visitor records to Excel', format: 'xlsx', count: visible.length });
     await loadHistory();
-  } catch (error) { setMessage(reportMessage, error.message, 'error'); }
-  finally { sendToSheetsButton.disabled = false; }
-
+  } catch (error) { setMessage(reportMessage, 'Could not export the report: ' + error.message, 'error'); }
+  finally { exportFilteredReportButton.disabled = false; }
 });
 
 initProtectedPage({

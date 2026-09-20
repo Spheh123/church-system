@@ -1,0 +1,21 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const ExcelJS = require('exceljs');
+const esbuild = require('esbuild');
+test('Excel report preserves visitor data, full table filters and readable formatting', async () => {
+  const build = await esbuild.build({entryPoints:['main-app/js/report-workbook.js'],bundle:true,platform:'node',format:'cjs',write:false,external:['exceljs']});
+  const mod={exports:{}}; new Function('require','module','exports',build.outputFiles[0].text)(require,mod,mod.exports);
+  const rows=Array.from({length:25},(_,i)=>({full_name:'Example Visitor '+i,gender:i%2?'Male':'Female',phone:'0763252164',email:'=HYPERLINK("bad")',prayer_points:'A long prayer request, with commas\nand a second line.',status:'not_called',created_at:'2026-09-20T10:00:00Z'}));
+  const output=await mod.exports.reportBuffer(rows,{not_called:'Pending'});
+  const book=new ExcelJS.Workbook();await book.xlsx.load(output);
+  const sheet=book.getWorksheet('Visitors');
+  assert.equal(sheet.rowCount,26); assert.equal(sheet.getCell('C2').value,'0763252164');
+  assert.equal(sheet.getCell('D2').type,ExcelJS.ValueType.String);assert.equal(sheet.getCell('D2').value,rows[0].email);
+  assert.equal(sheet.getCell('B2').value,'Female');assert.equal(sheet.getCell('I2').value,'Pending');
+  assert.equal(sheet.getCell('U2').value.toISOString(),'2026-09-20T12:00:00.000Z');
+  assert.equal(sheet.views[0].ySplit,1);assert.equal(sheet.views[0].xSplit,1);
+  assert.ok(sheet.getColumn(1).width>=28);assert.ok(sheet.getCell('L2').alignment.wrapText);
+  const table=sheet.getTable('ChurchVisitors');assert.equal(table.table.columns.length,25);
+  assert.ok(table.table.columns.every(c=>c.filterButton));
+  assert.equal(sheet.getCell('L2').value,rows[0].prayer_points);
+});

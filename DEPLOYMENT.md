@@ -60,7 +60,7 @@ or use the church app's admin reset control.
 ## Netlify
 
 Use a Git-based deploy, not a static folder drag-and-drop: serverless functions
-are required for passwords, sessions, form intake, and Google Sheets reports.
+are required for passwords, sessions, form intake, and staff administration.
 
 The repository config sets:
 
@@ -106,18 +106,7 @@ it is promoted publicly, add provider bot protection/rate limiting first.
 
 ## Reports
 
-CSV export works without Google setup and escapes formula-like visitor input.
-For Sheets, create a separate private report spreadsheet and install
-`apps-script/report-receiver.gs`; do not use the visitor-response spreadsheet.
-Set its `REPORT_SPREADSHEET_ID` and `GOOGLE_SHEETS_REPORT_SECRET` properties.
-Deploy the script as a web app executing as its owner, reachable by the server;
-requests require the shared secret. Keep the spreadsheet itself private.
-
-Test a manual report, then enable daily reports. The schedule is 07:00 South
-African time. Daily reports are complete follow-up snapshots, not just today's
-new visitors. Each report creates a named tab; repeated daily deliveries use
-the same tab. Archive old report tabs periodically to avoid spreadsheet limits.
-The scheduler uses Netlify logs for failures; it does not send notification email.
+Reports download as formatted .xlsx workbooks, with a filterable table, frozen name/header, all captured visitor fields and Johannesburg timestamps. ExcelJS is loaded only when exporting. Google Sheets reporting and its daily schedule have been retired; the inbound Google Form integration is unchanged.
 
 ## Access from the church website
 
@@ -145,7 +134,7 @@ optional and requires a separate DNS change.
    sessions become disconnected; there is no invented exact logout time.
 7. Admin disables the team account. New reads and updates are refused by RLS.
 8. Verify the strict password guard as described above.
-9. Test current Google Form intake and a CSV export; test Sheets if configured.
+9. Test current Google Form intake and an Excel export and its column filters.
 10. Test phone layout and logout; then add/deploy the footer link.
 
 ## Operations and limits

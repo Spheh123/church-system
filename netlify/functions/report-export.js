@@ -1,10 +1,6 @@
-const { randomUUID } = require('node:crypto');
-const { authorize, parseBody, audit, handler } = require('./lib/server');
-const { reportRows, sendReport } = require('./lib/reports');
+const { authorize, handler, HttpError } = require('./lib/server');
+// Old clients receive a clear retirement message; no data is sent externally.
 exports.handler = handler(async event => {
-  const { user } = await authorize(event, ['admin', 'pastor']);
-  const rows = await reportRows(parseBody(event));
-  const result = await sendReport(rows, 'manual-' + randomUUID());
-  await audit(user.id, 'report_sent_to_sheets', { summary: `Sent ${rows.length} records to Google Sheets` });
-  return result;
+  await authorize(event, ['admin', 'pastor']);
+  throw new HttpError(410, 'Google Sheets reporting has been retired. Download an Excel report from Reports.');
 });
