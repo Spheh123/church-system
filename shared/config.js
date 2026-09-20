@@ -58,6 +58,7 @@ export const navItems = [
   { key: "people", label: "People", href: "people.html", roles },
   { key: "followup", label: "Follow-Up Board", href: "followup.html", roles },
   { key: "reports", label: "Reports", href: "reports.html", roles: ["admin", "pastor"] },
+  { key: "training", label: "Training manuals", href: "training/index.html", roles },
 ];
 
 export const defaultRouteByRole = {

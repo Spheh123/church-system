@@ -8,7 +8,7 @@ create or replace function public.validate_person() returns trigger
 language plpgsql set search_path=public as $$
 declare field text; value text;
 begin
-  if trim(new.full_name) = '' then raise exception 'Name is required'; end if;
+  if nullif(trim(new.full_name), '') is null then raise exception 'Name is required'; end if;
   for field,value in select key, v from jsonb_each_text(to_jsonb(new)) as entry(key,v) loop
     if length(value) > (case when field in ('prayer_points','service_feedback','invite_details') then 10000 else 500 end) then
       raise exception 'Field % is too long', field;

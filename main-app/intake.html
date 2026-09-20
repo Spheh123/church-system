@@ -22,6 +22,7 @@
       </div>
       <div class="hero-actions">
         <a class="secondary-action" href="login.html">Open staff login</a>
+        <a class="secondary-action" href="training/ushers.html">Ushers' guide</a>
       </div>
     </section>
 
@@ -31,6 +32,7 @@
         <span class="panel-meta">Every response is stored for future care, follow-up, and reporting</span>
       </div>
       <form id="publicIntakeForm" class="form-grid">
+        <label>Service date<input type="date" id="intakeServiceDate" required></label>
         <label>
           Full name
           <input type="text" id="intakeFullName" required>
@@ -103,9 +105,11 @@
           Leave this field empty
           <input type="text" id="intakeWebsite">
         </label>
+        <label class="full-width"><span><input type="checkbox" id="intakeConsent" required> I have explained that these details will be used by the church for visitor care and follow-up, and the visitor agreed. WhatsApp group membership follows their answer above.</span></label>
+        <p class="full-width muted-text">Only enter information the visitor provided. Leave optional answers blank if they did not answer. Enter each visitor once and wait for the success message.</p>
         <button type="submit" class="primary-action">Submit visitor form</button>
       </form>
-      <div id="publicIntakeMessage" class="inline-alert hidden"></div>
+      <div id="publicIntakeMessage" class="inline-alert hidden" role="status" aria-live="polite" tabindex="-1"></div>
     </section>
   </main>
 

@@ -3,6 +3,9 @@ import { clearMessage, setMessage } from "./auth.js";
 
 const publicIntakeForm = document.getElementById("publicIntakeForm");
 const publicIntakeMessage = document.getElementById("publicIntakeMessage");
+const serviceDate = document.getElementById("intakeServiceDate");
+serviceDate.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
+let submitting = false;
 
 function payloadFromForm() {
   return {
@@ -28,6 +31,7 @@ function payloadFromForm() {
 
 publicIntakeForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (submitting) return;
   clearMessage(publicIntakeMessage);
 
   if (document.getElementById("intakeWebsite").value.trim()) {
@@ -36,6 +40,13 @@ publicIntakeForm?.addEventListener("submit", async (event) => {
   }
 
   const payload = payloadFromForm();
+  const selectedDate = serviceDate.value;
+  const selectedService = document.getElementById("intakeServiceAttended").value;
+  const submitButton = publicIntakeForm.querySelector('button[type="submit"]');
+  submitting = true;
+  submitButton.disabled = true;
+  submitButton.textContent = 'Saving visitor…';
+  try {
   const { data, error } = await supabase.rpc("submit_public_person", {
     p_full_name: payload.full_name,
     p_email: payload.email,
@@ -45,11 +56,7 @@ publicIntakeForm?.addEventListener("submit", async (event) => {
     p_gender: payload.gender,
     p_occupation: payload.occupation,
     p_marital_status: payload.marital_status,
-    p_service_feedback: payload.service_feedback
-      ? `${payload.service_feedback}${document.getElementById("intakeServiceAttended").value.trim() ? ` | Service attended: ${document.getElementById("intakeServiceAttended").value.trim()}` : ""}`
-      : document.getElementById("intakeServiceAttended").value.trim()
-        ? `Service attended: ${document.getElementById("intakeServiceAttended").value.trim()}`
-        : "",
+    p_service_feedback: [payload.service_feedback, `Service date: ${selectedDate}`, selectedService.trim() ? `Service attended: ${selectedService.trim()}` : '', 'Visitor agreed to church care and follow-up.'].filter(Boolean).join(' | '),
     p_nsppdian: payload.nsppdian,
     p_next_sunday: payload.next_sunday,
     p_membership_interest: payload.membership_interest,
@@ -65,5 +72,15 @@ publicIntakeForm?.addEventListener("submit", async (event) => {
   }
 
   publicIntakeForm.reset();
-  setMessage(publicIntakeMessage, `Thank you. Your information has been received successfully. Reference: ${data}`, "success");
+  serviceDate.value = selectedDate;
+  document.getElementById("intakeServiceAttended").value = selectedService;
+  setMessage(publicIntakeMessage, `${payload.full_name} has been saved. You can enter the next visitor. Reference: ${data}`, "success");
+  } catch {
+    setMessage(publicIntakeMessage, 'We could not confirm the save. Keep this form open and ask an admin to check whether this visitor arrived before submitting again.', 'error');
+  } finally {
+    submitting = false;
+    submitButton.disabled = false;
+    submitButton.textContent = 'Submit visitor form';
+    publicIntakeMessage.focus();
+  }
 });

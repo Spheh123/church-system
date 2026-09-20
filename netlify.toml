@@ -46,5 +46,10 @@ status = 301
 [build.environment]
 NODE_VERSION = "24"
 
+[[redirects]]
+from = "/main-app/intake"
+to = "/main-app/intake.html"
+status = 200
+
 [functions]
 node_bundler = "esbuild"
