@@ -5,7 +5,7 @@ const git=(args,input)=>execFileSync('git',['-C',repo,...args],{encoding:'utf8',
 if(git(['diff','--cached','--name-only']).trim())throw new Error('Existing staged changes: stop to preserve them.');
 const transform=html=>{
  if(!html.includes('assets/brand/brand-loader.css'))html=html.replace('</head>','  <link rel="stylesheet" href="assets/brand/brand-loader.css">\n  <script src="assets/brand/brand-loader.js" defer></script>\n</head>');
- return html.replaceAll('images/SOJJ-Monochrome-Logo-White.png','assets/brand/church-logo-original.png');
+ return html.replaceAll('assets/brand/church-logo-original.png','images/SOJJ-Monochrome-Logo-White.png');
 };
 for(const file of git(['ls-files','*.html']).trim().split('\n').filter(f=>f&&!f.includes('/'))){
  const original=git(['show','HEAD:'+file]);const updated=transform(original);

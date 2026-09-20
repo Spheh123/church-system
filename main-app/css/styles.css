@@ -40,20 +40,34 @@ body {
 }
 
 body.auth-loading::before {
-  content: "Loading secure workspace...";
+  content: "";
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(251, 246, 239, 0.92);
+  background: #fff url('../assets/church-logo-original.png') center calc(50% - 35px) / min(76vw, 470px) auto no-repeat;
   color: var(--brand-dark);
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   z-index: 999;
-  backdrop-filter: blur(10px);
 }
+
+body.auth-loading::after {
+  content: "";
+  position: fixed;
+  left: calc(50% - 13px);
+  top: calc(50% + 100px);
+  width: 26px;
+  height: 26px;
+  border: 2px solid #e6eafa;
+  border-top-color: #304bb4;
+  border-radius: 50%;
+  z-index: 1000;
+  animation: sojj-spin .9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { body.auth-loading::after { animation: none; } }
 
 a {
   color: inherit;
