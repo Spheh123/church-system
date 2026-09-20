@@ -1,0 +1,14 @@
+.sojj-loader{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#fff;opacity:1;transition:opacity .45s ease,visibility .45s;animation:sojj-failsafe 0s 6s forwards;pointer-events:none}
+.sojj-loader.is-leaving{opacity:0;visibility:hidden}
+.sojj-loader__stage{width:min(76vw,470px);position:relative;text-align:center}
+.sojj-loader__logo{display:block;width:100%;height:auto;position:relative;z-index:1;animation:sojj-float 1.8s ease-in-out infinite;filter:drop-shadow(0 13px 14px rgba(44,63,163,.13))}
+.sojj-loader__shadow{display:block;width:70%;height:16px;margin:26px auto 28px;background:radial-gradient(ellipse,rgba(35,56,141,.22),rgba(35,56,141,0) 70%);filter:blur(6px);animation:sojj-shadow 1.8s ease-in-out infinite}
+.sojj-loader__ring{display:block;width:26px;height:26px;border:2px solid #e6eafa;border-top-color:#304bb4;border-radius:50%;margin:auto;animation:sojj-spin .9s linear infinite}
+.sojj-loader__status{font:500 10px/1.5 system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#6f7a98;margin-top:16px}
+.brand-block .church-logo,.login-brand-panel .church-logo,.brand img,.footer-brand-row img{background:#fff;padding:10px 12px;border-radius:10px;box-sizing:border-box;box-shadow:0 4px 18px rgba(18,34,76,.08)}
+@keyframes sojj-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes sojj-shadow{0%,100%{transform:scaleX(1);opacity:.8}50%{transform:scaleX(.86);opacity:.5}}
+@keyframes sojj-spin{to{transform:rotate(360deg)}}
+@keyframes sojj-failsafe{to{opacity:0;visibility:hidden}}
+@media(prefers-reduced-motion:reduce){.sojj-loader{transition:none}.sojj-loader__logo,.sojj-loader__shadow,.sojj-loader__ring{animation:none}}
+@media print{.sojj-loader{display:none}}

@@ -6,7 +6,7 @@ export const supabaseConfig = {
 export const appConfig = {
   appName: "Streams of Joy Johannesburg Follow-Up",
   supportEmail: "admin@streamsofjoyjhb.org",
-  logoPath: "assets/church-logo.png",
+  logoPath: "assets/church-logo-original.png",
   formWebhookPath: "/.netlify/functions/form-intake",
   adminUserProvisionPath: "/.netlify/functions/admin-create-user",
   adminPasswordResetPath: "/.netlify/functions/admin-reset-user-password",
