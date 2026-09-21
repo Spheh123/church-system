@@ -1,6 +1,6 @@
 import { supabase } from "../../shared/supabase.js";
 import { statusLabels } from "../../shared/config.js";
-import { readAllRows, clearMessage, escapeHtml, formatTimestamp, initProtectedPage, populateStatusSelect, setMessage } from "./auth.js";
+import { apiRequest, readAllRows, clearMessage, escapeHtml, formatTimestamp, initProtectedPage, populateStatusSelect, setMessage } from "./auth.js";
 import { logActivity } from "./activity.js";
 
 const exportFilteredReportButton = document.getElementById("exportFilteredReportButton");
@@ -137,17 +137,17 @@ exportFilteredReportButton.addEventListener("click", async () => {
   exportFilteredReportButton.disabled = true;
   try {
     await loadRows();
-    const visible = filteredRows();
+    const report = await apiRequest('/.netlify/functions/report-export', { start: reportStartDate.value, end: reportEndDate.value, status: reportStatus.value, assignee: reportAssignee.value, sensitive: document.getElementById('includeSensitive').checked });
+    const visible = report.rows;
     if (!visible.length) { setMessage(reportMessage, "No records match this report. Adjust the filters and try again.", "error"); return; }
     const { reportBuffer } = await import('./report-workbook.js');
-    const buffer = await reportBuffer(visible, statusLabels);
+    const buffer = await reportBuffer(visible, statusLabels, report.sensitive);
     const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const link = document.createElement('a');
     link.href = url; link.download = 'church-visitor-report-' + new Date().toISOString().slice(0,10) + '.xlsx';
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     setMessage(reportMessage, visible.length + ' records exported to Excel. Use the arrows in the column headings to filter inside Excel.', 'success');
-    await logActivity('report_exported', null, { summary: 'Exported ' + visible.length + ' visitor records to Excel', format: 'xlsx', count: visible.length });
     await loadHistory();
   } catch (error) { setMessage(reportMessage, 'Could not export the report: ' + error.message, 'error'); }
   finally { exportFilteredReportButton.disabled = false; }
@@ -155,7 +155,8 @@ exportFilteredReportButton.addEventListener("click", async () => {
 
 initProtectedPage({
   allowedRoles: ["admin", "pastor"],
-  onReady: async () => {
+  onReady: async ({profile}) => {
+    document.getElementById("includeSensitive").disabled = profile.role !== "admin" && !profile.can_export_sensitive;
     await Promise.all([loadRows(), loadUsers(), loadHistory()]);
   },
 }).catch((error) => {

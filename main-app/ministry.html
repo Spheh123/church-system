@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Reporting module for Streams of Joy Johannesburg Church Management System">
+  <title>Visitor care & journey</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="assets/brand-loader.css">
+  <script src="assets/brand-loader.js" defer></script>
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="Visitor care" data-nav="ministry">
+    <main class="page-content"><section class="hero-panel"><div><span class="eyebrow">Known. Loved. Connected.</span><h1>Visitor care & journey</h1><p>Track actual visits, contact, membership interest and discipleship. Service headcounts are available separately under Attendance stats.</p></div></section>
+<div id="ministryMessage" class="inline-alert hidden" role="status"></div>
+<section class="panel" id="journeyOverview"><h2>Visitor journey</h2><label>Month<input type="month" id="journeyMonth"></label><div id="journeySummary" class="status-summary"></div><p class="muted-text">First visits and returns use recorded visit dates, not database capture dates. Contact speed uses the first recorded successful contact after the first visit; historical missing dates are not guessed.</p><div id="journeyPeople"></div></section>
+<section class="panel" id="assignmentPanel"><h2>Fair follow-up assignment</h2><p>Mark workers available, then distribute unassigned visitors to the available worker with the fewest unfinished assignments. Existing assignments stay in place; leaders can reassign from a profile.</p><div id="assignmentWorkers"></div><button id="assignWaiting" class="primary-action" type="button">Distribute waiting visitors</button></section>
+<section class="panel"><h2>Pastoral attention queue</h2><p>Flag a visitor from their profile. Urgent flags appear here; contact a pastor directly when immediate help is needed.</p><label>Show<select id="careScope"><option value="open">Open and in progress</option><option value="all">All requests</option><option value="Responded">Responded</option></select></label><div id="careQueue"></div></section></main>
+  </div>
+
+  <script type="module" src="js/ministry.js"></script>
+</body>
+</html>

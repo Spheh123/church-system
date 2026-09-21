@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Reporting module for Streams of Joy Johannesburg Church Management System">
+  <title>Service attendance</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="assets/brand-loader.css">
+  <script src="assets/brand-loader.js" defer></script>
+</head>
+<body>
+  <div id="appShell" class="app-shell" data-page-title="Service attendance" data-nav="attendance">
+    <main class="page-content">
+<section class="hero-panel"><div><span class="eyebrow">Every service counts</span><h1>Service attendance</h1><p>Record headcounts after each service. These totals count attendances, not unique people across services.</p></div></section>
+<div id="attendanceMessage" class="inline-alert hidden" role="status"></div>
+<section class="panel"><h2 id="entryTitle">Record a service</h2><form id="attendanceForm" class="form-grid">
+<label>Service date<input id="serviceDate" type="date" required></label><label>Service<select id="serviceType"><option>Sunday first</option><option>Sunday second</option><option>Wednesday</option><option>All-night prayer</option><option>Special event</option></select></label>
+<label>Service / event name<input id="serviceName" maxlength="150" placeholder="Required for a special event"></label>
+<label>Men (adults)<input id="countMen" type="number" min="0" max="100000" step="1" required></label><label>Women (adults)<input id="countWomen" type="number" min="0" max="100000" step="1" required></label><label>Teens<input id="countTeens" type="number" min="0" max="100000" step="1" required></label><label>Children<input id="countChildren" type="number" min="0" max="100000" step="1" required></label>
+<p id="liveTotal">Total: 0</p><button class="primary-action" type="submit">Save attendance</button><button id="cancelEdit" class="secondary-action" type="button">New service</button></form>
+<p class="muted-text">Count each person in one category only. Use your church’s agreed age categories consistently. Sunday services are entered separately.</p></section>
+<section class="panel"><h2>Compare attendance</h2><div class="form-grid"><label>From<input id="trendFrom" type="date"></label><label>To<input id="trendTo" type="date"></label><label>Service<select id="trendService"><option value="">All services</option><option>Sunday first</option><option>Sunday second</option><option>Wednesday</option><option>All-night prayer</option><option>Special event</option></select></label><label>Measure<select id="trendMetric"><option value="total">Total attendance</option><option value="men">Men</option><option value="women">Women</option><option value="teens">Teens</option><option value="children">Children</option></select></label><label>Group by<select id="trendGroup"><option value="date">Service date</option><option value="month">Month</option><option value="service">Service type</option></select></label></div><div id="attendanceSummary" class="status-summary"></div><div id="attendanceChart" aria-label="Attendance comparison"></div><div id="attendanceRows" class="attendance-table-wrap"></div></section></main>
+  </div>
+
+  <script type="module" src="js/attendance.js"></script>
+</body>
+</html>

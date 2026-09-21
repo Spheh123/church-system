@@ -1,3 +1,4 @@
+import { setupJourney } from './person-journey.js';
 import { supabase } from "../../shared/supabase.js";
 import { personFieldLabels, personFieldOrder } from "../../shared/config.js";
 import { clearMessage, escapeHtml, formatTimestamp, getStatusBadge, initProtectedPage, populateStatusSelect, setMessage, subscribeTables } from "./auth.js";
@@ -65,7 +66,7 @@ async function loadPerson() {
 }
 
 async function loadUsers() {
-  const { data, error } = await supabase.from("users").select("id, name, email, role").order("name");
+  const { data, error } = await supabase.from("users").select("id, name, email, role").in("role", ["admin","pastor","team"]).eq("is_active", true).order("name");
   if (error) {
     throw error;
   }
@@ -177,6 +178,7 @@ initProtectedPage({
 
     await loadPerson();
     setupProfileEditor();
+    await setupJourney(personId, profile);
     await Promise.all([loadUsers(), loadNotes(), loadActivity()]);
     await logActivityOnce(`view-person-${personId}`, "viewed_record", personId, {
       summary: "Opened the person profile",

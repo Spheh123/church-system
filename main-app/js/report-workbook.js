@@ -27,26 +27,27 @@ function cellValue(row, key, labels) {
   }
   return String(value);
 }
-export function createReportWorkbook(items, labels = {}) {
+export function createReportWorkbook(items, labels = {}, includeSensitive = true) {
+  const columns = reportColumns.filter(([key]) => includeSensitive || !['prayer_points','service_feedback','invite_details','followup_notes'].includes(key));
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Streams of Joy Johannesburg';
   workbook.created = new Date();
   const sheet = workbook.addWorksheet('Visitors', { views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }] });
-  sheet.columns = reportColumns.map(([key, header, width]) => ({ key, header, width }));
+  sheet.columns = columns.map(([key, header, width]) => ({ key, header, width }));
   sheet.addTable({ name: 'ChurchVisitors', ref: 'A1', headerRow: true,
     style: { theme: 'TableStyleMedium2', showRowStripes: true },
-    columns: reportColumns.map(([, name]) => ({ name, filterButton: true })),
-    rows: items.map(row => reportColumns.map(([key]) => cellValue(row, key, labels))),
+    columns: columns.map(([, name]) => ({ name, filterButton: true })),
+    rows: items.map(row => columns.map(([key]) => cellValue(row, key, labels))),
   });
   sheet.eachRow((row, number) => {
     let lines = 1;
     row.eachCell({ includeEmpty: true }, (cell, column) => {
       cell.font = { name: 'Calibri', size: 11, ...(number === 1 ? { bold: true, color: { argb: 'FFFFFFFF' } } : {}) };
       cell.alignment = { vertical: 'top', wrapText: true };
-      const key = reportColumns[column - 1][0];
+      const key = columns[column - 1][0];
       cell.numFmt = dateFields.has(key) ? 'dd mmm yyyy hh:mm' : '@';
       if (number === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF123458' } };
-      lines = Math.max(lines, ...String(cell.value ?? '').split('\n').map(s => Math.ceil(s.length / Math.max(10, reportColumns[column - 1][2] - 3))));
+      lines = Math.max(lines, ...String(cell.value ?? '').split('\n').map(s => Math.ceil(s.length / Math.max(10, columns[column - 1][2] - 3))));
     });
     row.height = number === 1 ? 34 : Math.min(409, Math.max(32, lines * 16 + 8));
   });
@@ -63,6 +64,6 @@ export function createReportWorkbook(items, labels = {}) {
   ].forEach(values => { const row = guide.addRow(values); row.alignment = { wrapText: true, vertical: 'top' }; row.height = 48; });
   return workbook;
 }
-export async function reportBuffer(items, labels) {
-  return createReportWorkbook(items, labels).xlsx.writeBuffer();
+export async function reportBuffer(items, labels, includeSensitive = true) {
+  return createReportWorkbook(items, labels, includeSensitive).xlsx.writeBuffer();
 }

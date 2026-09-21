@@ -92,3 +92,11 @@ test('Session location comes from the platform, not caller input',async()=>{
   const result=await handle(new Request('https://example.test/session',{method:'POST',headers:{authorization:'Bearer '+token,'user-agent':'Test browser'},body:JSON.stringify({action:'heartbeat',active:true,ip:'forged',location:'forged'})}),{ip:'192.0.2.8',geo:{city:'Johannesburg',country:{name:'South Africa'}}});
   assert.equal(result.status,200);assert.equal(captured.p_ip,'192.0.2.8');assert.equal(captured.p_location,'Johannesburg, South Africa');
 });
+
+test('Sensitive report export is server-authorised and ordinary export omits care text',async()=>{
+ const handler=require('../netlify/functions/report-export').handler;let sensitivePermission=false;const queries=[];
+ global.fetch=async(url,options)=>{const u=String(url);if(u.endsWith('/auth/v1/user'))return response({id:staffId});if(u.includes('/users?'))return response([{id:staffId,role:'pastor',is_active:true,can_export_sensitive:sensitivePermission}]);if(u.includes('/people_overview?')){queries.push(u);return response([]);}if(u.includes('/activity_logs'))return response(null);throw new Error('Unexpected request');};
+ assert.equal((await handler(event({sensitive:true}))).statusCode,403);assert.equal(queries.length,0);
+ assert.equal((await handler(event({sensitive:false}))).statusCode,200);assert.ok(!queries[0].includes('prayer_points'));assert.ok(!queries[0].includes('followup_notes'));
+ sensitivePermission=true;assert.equal((await handler(event({sensitive:true}))).statusCode,200);assert.ok(queries[1].includes('prayer_points'));assert.ok(!queries[1].includes('pastoral_notes'));
+});

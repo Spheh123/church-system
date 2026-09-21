@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 const esbuild = require('esbuild');
 const fs = require('node:fs');
 const path = require('node:path');
-for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['people','team'],['person','admin'],['followup','team'],['reports','pastor']]) {
+for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['people','team'],['person','admin'],['followup','team'],['reports','pastor'],['attendance','usher'],['ministry','pastor']]) {
   test(`${page} renders real page nodes and controls for ${role}`, async () => {
     const dom = new JSDOM(fs.readFileSync(`main-app/${page}.html`,'utf8'), { url:`http://localhost/main-app/${page}.html?role=${role}&id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,runScripts:'outside-only' });
     const bundle = await esbuild.build({ entryPoints:[path.resolve(`main-app/js/${page}.js`)],bundle:true,format:'iife',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/shared\/supabase\.js$/},()=>({path:path.resolve('tests/fixtures/supabase.js')}));}}] });

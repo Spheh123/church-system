@@ -77,7 +77,7 @@ function showProblem(message) {
   document.getElementById("backToLogin")?.addEventListener("click", async () => {
     await recordLogout().catch(() => {});
     await supabase.auth.signOut({ scope: "local" });
-    navigateTo("login.html");
+    navigateTo(currentFileName() === "attendance.html" ? "usher-login.html" : "login.html");
   });
 
   document.getElementById("reloadPage")?.addEventListener("click", () => {
@@ -168,7 +168,7 @@ function renderShell(profile) {
   document.getElementById("logoutButton")?.addEventListener("click", async () => {
     await recordLogout().catch(() => {});
     await supabase.auth.signOut({ scope: "local" });
-    navigateTo("login.html");
+    navigateTo(currentFileName() === "attendance.html" ? "usher-login.html" : "login.html");
   });
 }
 
@@ -284,7 +284,7 @@ export function subscribeTables(tables, callback) {
   return channel;
 }
 
-export async function initProtectedPage({ allowedRoles = roles, onReady } = {}) {
+export async function initProtectedPage({ allowedRoles = ["admin","pastor","team"], onReady } = {}) {
   startLoading();
 
   try {
@@ -294,7 +294,7 @@ export async function initProtectedPage({ allowedRoles = roles, onReady } = {}) 
     }
 
     if (!session) {
-      navigateTo("login.html");
+      navigateTo(currentFileName() === "attendance.html" ? "usher-login.html" : "login.html");
       return;
     }
 
@@ -385,7 +385,7 @@ function initIndexPage() {
   supabase.auth.getSession().then(async ({ data: { session } }) => {
     if (!session) {
       stopLoading();
-      navigateTo("login.html");
+      navigateTo(currentFileName() === "attendance.html" ? "usher-login.html" : "login.html");
       return;
     }
 
@@ -396,12 +396,12 @@ function initIndexPage() {
     } catch (error) {
       console.warn("Index redirect failed", error);
       stopLoading();
-      navigateTo("login.html");
+      navigateTo(currentFileName() === "attendance.html" ? "usher-login.html" : "login.html");
     }
   });
 }
 
-if (currentFileName() === "login.html") {
+if (["login.html","usher-login.html"].includes(currentFileName())) {
   initLoginPage();
 }
 

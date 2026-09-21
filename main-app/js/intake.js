@@ -47,23 +47,9 @@ publicIntakeForm?.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
   submitButton.textContent = 'Saving visitor…';
   try {
-  const { data, error } = await supabase.rpc("submit_public_person", {
-    p_full_name: payload.full_name,
-    p_email: payload.email,
-    p_phone: payload.phone,
-    p_area_of_residence: payload.area_of_residence,
-    p_dob: payload.dob,
-    p_gender: payload.gender,
-    p_occupation: payload.occupation,
-    p_marital_status: payload.marital_status,
-    p_service_feedback: [payload.service_feedback, `Service date: ${selectedDate}`, selectedService.trim() ? `Service attended: ${selectedService.trim()}` : '', 'Visitor agreed to church care and follow-up.'].filter(Boolean).join(' | '),
-    p_nsppdian: payload.nsppdian,
-    p_next_sunday: payload.next_sunday,
-    p_membership_interest: payload.membership_interest,
-    p_whatsapp_group: payload.whatsapp_group,
-    p_prayer_points: payload.prayer_points,
-    p_invite: payload.invite,
-    p_invite_details: payload.invite_details,
+  const { data, error } = await supabase.rpc("submit_public_visit", {
+    p_visit_date: selectedDate,
+    p_data: {...payload, service_feedback: [payload.service_feedback, `Service date: ${selectedDate}`, selectedService.trim() ? `Service attended: ${selectedService.trim()}` : '', 'Visitor agreed to church care and follow-up.'].filter(Boolean).join(' | ')},
   });
 
   if (error) {

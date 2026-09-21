@@ -4,7 +4,7 @@ exports.handler = handler(async event => {
   const input = parseBody(event);
   const name = typeof input.name === 'string' ? input.name.trim() : '';
   const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
-  if (!name || name.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !['admin', 'pastor', 'team'].includes(input.role)) throw new HttpError(400, 'Enter a name, valid email address, and role.');
+  if (!name || name.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !['admin', 'pastor', 'team', 'usher'].includes(input.role)) throw new HttpError(400, 'Enter a name, valid email address, and role.');
   const generated = password();
   const created = await api('/auth/v1/admin/users', { method: 'POST', body: { email, password: generated, email_confirm: true, user_metadata: { name } } });
   const id = created.user?.id || created.id;

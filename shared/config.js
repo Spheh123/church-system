@@ -16,7 +16,7 @@ export const appConfig = {
   activityThrottleMs: 180_000,
 };
 
-export const roles = ["admin", "pastor", "team"];
+export const roles = ["admin", "pastor", "team", "usher"];
 
 export const followUpStatuses = [
   "not_called",
@@ -54,9 +54,11 @@ export const statusToneMap = {
 export const followUpBoardColumns = followUpStatuses;
 
 export const navItems = [
+  { key: "attendance", label: "Attendance stats", href: "attendance.html", roles: ["admin","pastor","usher"] },
+  { key: "ministry", label: "Visitor care & journey", href: "ministry.html", roles: ["admin","pastor","team"] },
   { key: "dashboard", label: "Dashboard", href: "dashboard.html", roles: ["admin", "pastor"] },
-  { key: "people", label: "People", href: "people.html", roles },
-  { key: "followup", label: "Follow-Up Board", href: "followup.html", roles },
+  { key: "people", label: "People", href: "people.html", roles: ["admin","pastor","team"] },
+  { key: "followup", label: "Follow-Up Board", href: "followup.html", roles: ["admin","pastor","team"] },
   { key: "reports", label: "Reports", href: "reports.html", roles: ["admin", "pastor"] },
   { key: "training", label: "Training manuals", href: "training.html", roles },
 ];
@@ -65,6 +67,7 @@ export const defaultRouteByRole = {
   admin: "dashboard.html",
   pastor: "dashboard.html",
   team: "followup.html",
+  usher: "attendance.html",
 };
 
 export const personFieldOrder = [

@@ -1044,3 +1044,17 @@ a:focus-visible, button:focus-visible { outline: 3px solid #75aac6; outline-offs
 @media(max-width:980px) { .kanban-board { grid-template-columns:1fr; } }
 .page-content { grid-template-columns:minmax(0,1fr); }
 .page-content > *, .grid-layout > *, .hero-copy { min-width:0; }
+
+/* Service reporting keeps numeric comparisons readable on phones and desktops. */
+.attendance-table-wrap { overflow-x:auto; }
+.attendance-table { width:100%; text-align:left; border-collapse:collapse; min-width:720px; }
+.attendance-table th,.attendance-table td { padding:14px 12px; border-bottom:1px solid #dce5ee; }
+.attendance-table th { background:#edf3fa; color:#123458; }
+.attendance-table tbody tr:nth-child(even) { background:#f7f9fc; }
+.attendance-bar { margin:16px 0; }
+.attendance-bar meter { display:block; width:100%; height:24px; }
+.staff-toggle { display:flex; align-items:center; gap:12px; margin:14px 0; }
+.staff-toggle input { width:auto; }
+#journeyPeople a { display:inline-block; margin:4px 10px 8px 0; }
+#careQueue .note-item { margin-top:18px; }
+#journeyTimeline .note-item { border-left:3px solid #3155ba; padding-left:18px; }
