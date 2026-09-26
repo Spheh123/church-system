@@ -38,7 +38,7 @@ function syncVisitorToChurchWorkspace(e) {
     secret: PropertiesService.getScriptProperties().getProperty("FORM_WEBHOOK_SECRET")
   };
 
-  var response = UrlFetchApp.fetch("https://sojjdatabasesoftware.netlify.app/.netlify/functions/form-intake", {
+  var response = UrlFetchApp.fetch("https://care.streamsofjoyjohannesburg.org/.netlify/functions/form-intake", {
     method: "post",
     contentType: "application/json",
     payload: JSON.stringify(payload),

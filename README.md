@@ -47,6 +47,6 @@ The static preview opens at http://127.0.0.1:4173 and does not emulate serverles
 ## Website access
 
 The church website footer should link **Team Login** to:
-https://sojjdatabasesoftware.netlify.app/main-app/login.html
+https://care.streamsofjoyjohannesburg.org/main-app/login.html
 
 Adding that footer link and deploying the upgrade are separate live steps described in the deployment guide. Never store service-role keys, generated passwords, visitor exports or other secrets in Git.

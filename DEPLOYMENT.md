@@ -5,7 +5,7 @@ Netlify deploy, and real-account checks below have succeeded.
 
 ## Existing site and data
 
-- Team site: https://sojjdatabasesoftware.netlify.app/main-app/login.html
+- Team site: https://care.streamsofjoyjohannesburg.org/main-app/login.html
 - Supabase project: `pyqwigkelwavbgbiwfhh` (restored during this repair).
 - Keep the current Google Form, response spreadsheet, and any existing Firebase
   sync running. Nothing in this code deployment changes those external scripts.
@@ -113,7 +113,7 @@ Reports download as formatted .xlsx workbooks, with a filterable table, frozen n
 Add this to the existing footer links beside Privacy Policy and Terms:
 
 ```html
-<a href="https://sojjdatabasesoftware.netlify.app/main-app/login.html"
+<a href="https://care.streamsofjoyjohannesburg.org/main-app/login.html"
    rel="nofollow">Team Login</a>
 ```
 
