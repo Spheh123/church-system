@@ -4,6 +4,12 @@ command = "node scripts/build.cjs"
 functions = "netlify/functions"
 
 [[redirects]]
+from = "https://sojjdatabasesoftware.netlify.app/*"
+to = "https://care.streamsofjoyjohannesburg.org/:splat"
+status = 301
+force = true
+
+[[redirects]]
 from = "/"
 to = "/main-app/index.html"
 status = 301
