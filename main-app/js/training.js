@@ -10,7 +10,7 @@ function render(){
 }
 select.addEventListener('change',render);
 document.getElementById('printGuide').addEventListener('click',()=>window.print());
-initProtectedPage({ allowedRoles: ["admin","pastor","team","usher"],onReady:async()=>{
+initProtectedPage({ allowedRoles: ["super_admin","admin","coordinator","pastor","team","usher"],onReady:async()=>{
  try{
   ({guides}=await apiRequest('/.netlify/functions/training-manuals',{}));
   select.innerHTML=guides.map(g=>`<option value="${escapeHtml(g.id)}">${escapeHtml(g.title)}</option>`).join('');

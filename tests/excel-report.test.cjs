@@ -19,3 +19,11 @@ test('Excel report preserves visitor data, full table filters and readable forma
   assert.ok(table.table.columns.every(c=>c.filterButton));
   assert.equal(sheet.getCell('L2').value,rows[0].prayer_points);
 });
+
+test('Attendance workbook has native filters, real dates, numeric counts and correct totals', async()=>{
+ const build=await esbuild.build({entryPoints:['main-app/js/attendance-workbook.js'],bundle:true,platform:'node',format:'cjs',write:false,external:['exceljs']});
+ const mod={exports:{}};new Function('require','module','exports',build.outputFiles[0].text)(require,mod,mod.exports);
+ const data=[{service_date:'2026-09-20',service_type:'Special event',service_name:'=HYPERLINK("bad")',men:10,women:20,teens:3,children:4}];
+ const book=new ExcelJS.Workbook();await book.xlsx.load(await mod.exports.attendanceBuffer(data,{from:'2026-09-01',to:'2026-09-30'}));
+ const sheet=book.getWorksheet('Service attendance');assert.equal(sheet.getCell('H2').value,37);assert.equal(sheet.getCell('C2').type,ExcelJS.ValueType.String);assert.ok(sheet.getCell('A2').value instanceof Date);assert.equal(sheet.views[0].ySplit,1);assert.equal(sheet.getTable('Attendance').table.columns.length,8);assert.ok(sheet.getTable('Attendance').table.columns.every(c=>c.filterButton));assert.equal(book.getWorksheet('Report summary').getCell('B10').value,37);
+});

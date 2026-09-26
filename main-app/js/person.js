@@ -66,7 +66,7 @@ async function loadPerson() {
 }
 
 async function loadUsers() {
-  const { data, error } = await supabase.from("users").select("id, name, email, role").in("role", ["admin","pastor","team"]).eq("is_active", true).order("name");
+  const { data, error } = await supabase.from("users").select("id, name, email, role").eq("role", "team").eq("is_active", true).order("name");
   if (error) {
     throw error;
   }
@@ -75,9 +75,7 @@ async function loadUsers() {
     <option value="${user.id}" ${user.id === currentPerson?.assigned_to ? "selected" : ""}>${escapeHtml(user.name)} (${escapeHtml(user.role)})</option>
   `)].join("");
 
-  if (currentProfile.role === "team") {
-    assignedToSelect.disabled = true;
-  }
+  assignedToSelect.disabled = false;
 }
 
 async function loadNotes() {
@@ -197,7 +195,7 @@ initProtectedPage({
 });
 
 function setupProfileEditor() {
-  if (!['admin','pastor'].includes(currentProfile.role)) return;
+  if (!['super_admin','admin','coordinator','pastor'].includes(currentProfile.role)) return;
   document.getElementById('profileEditor').classList.remove('hidden');
   const fields = personFieldOrder.filter(f => f !== 'created_at');
   const container = document.getElementById('profileEditFields');

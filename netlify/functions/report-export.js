@@ -1,8 +1,9 @@
 const {authorize,parseBody,api,audit,handler,HttpError}=require('./lib/server');
 exports.handler=handler(async event=>{
- const {user,profile,token}=await authorize(event,['admin','pastor']);
+ const {user,profile,token}=await authorize(event,['super_admin','admin','coordinator','pastor']);
  const input=parseBody(event),sensitive=input.sensitive===true;
- if(sensitive&&profile.role!=='admin'&&!profile.can_export_sensitive)throw new HttpError(403,'Your administrator must grant sensitive-report export access.');
+ if(profile.role==='coordinator'&&!profile.can_export_reports)throw new HttpError(403,'A Super Admin or pastor must approve report access.');
+ if(sensitive&&!['super_admin','admin'].includes(profile.role)&&!profile.can_export_sensitive)throw new HttpError(403,'Your administrator must grant sensitive-report export access.');
  const safe='person_id,full_name,gender,phone,email,area_of_residence,dob,occupation,marital_status,status,assigned_name,assigned_email,nsppdian,next_sunday,membership_interest,whatsapp_group,invite,created_at,last_contacted,next_followup_at,updated_at';
  let path='/rest/v1/people_overview?select='+safe+(sensitive?',prayer_points,service_feedback,invite_details,followup_notes':'')+'&order=person_id';
  for(const [name,operator] of [['start','gte'],['end','lte']])if(input[name]){

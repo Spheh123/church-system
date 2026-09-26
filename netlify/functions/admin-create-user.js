@@ -1,10 +1,10 @@
 const { api, authorize, parseBody, password, audit, handler, HttpError } = require('./lib/server');
 exports.handler = handler(async event => {
-  const { user } = await authorize(event, ['admin']);
+  const { user, profile: actor } = await authorize(event, ['super_admin', 'admin', 'pastor']);
   const input = parseBody(event);
   const name = typeof input.name === 'string' ? input.name.trim() : '';
   const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
-  if (!name || name.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !['admin', 'pastor', 'team', 'usher'].includes(input.role)) throw new HttpError(400, 'Enter a name, valid email address, and role.');
+  if (!name || name.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !['coordinator', 'pastor', 'team', 'usher'].includes(input.role) || (input.role === 'coordinator' && actor.role !== 'super_admin')) throw new HttpError(400, 'Enter a name, valid email address, and permitted role.');
   const generated = password();
   const created = await api('/auth/v1/admin/users', { method: 'POST', body: { email, password: generated, email_confirm: true, user_metadata: { name } } });
   const id = created.user?.id || created.id;

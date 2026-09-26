@@ -2,9 +2,10 @@ import {supabase} from '../../shared/supabase.js';
 import {initProtectedPage,readAllRows,escapeHtml as e,setMessage,subscribeTables} from './auth.js';
 const $=id=>document.getElementById(id);let dirty=false;document.addEventListener('input',event=>{if(event.target.closest('[data-care]'))dirty=true;});let profile,people=[],events=[],staff=[],requests=[];
 $('journeyMonth').value=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Johannesburg',year:'numeric',month:'2-digit'}).format(new Date()).slice(0,7);
-const leader=()=>['admin','pastor'].includes(profile.role);
+const leader=()=>['super_admin','admin','coordinator','pastor'].includes(profile.role);
 const link=p=>`<a href="person.html?id=${p.person_id}">${e(p.full_name)}</a>`;
 function render(){
+ $("journeyOverview").classList.toggle("hidden",!leader());
  const month=$('journeyMonth').value,selected=events.filter(x=>x.occurred_on.startsWith(month));
  const count=kind=>new Set(selected.filter(x=>x.kind===kind).map(x=>x.person_id)).size;
  const delays=[];for(const first of selected.filter(x=>x.kind==='first_visit')){const call=events.filter(x=>x.person_id===first.person_id&&x.kind==='call'&&x.occurred_on>=first.occurred_on).sort((a,b)=>a.occurred_on.localeCompare(b.occurred_on))[0];if(call)delays.push((Date.parse(call.occurred_on)-Date.parse(first.occurred_on))/86400000);}
@@ -17,10 +18,12 @@ function render(){
  $('assignmentPanel').classList.toggle('hidden',!leader());
  $('assignmentWorkers').innerHTML=staff.filter(s=>s.role==='team'&&s.is_active).map(s=>`<label class="staff-toggle"><input type="checkbox" data-worker="${s.id}" ${s.available_for_assignment?'checked':''}> ${e(s.name)} — ${people.filter(p=>p.assigned_to===s.id&&!['completed','not_interested'].includes(p.status)).length} open</label>`).join('')||'<p>No active follow-up workers.</p>';
  $('assignmentWorkers').querySelectorAll('[data-worker]').forEach(input=>input.onchange=async()=>{input.disabled=true;try{const {error}=await supabase.rpc('set_assignment_availability',{p_user:input.dataset.worker,p_available:input.checked});if(error)throw error;await load();}catch(err){setMessage($('ministryMessage'),err.message,'error');input.checked=!input.checked;}finally{input.disabled=false;}});
- if(profile.role==='admin'){
+ if(['super_admin','admin','pastor'].includes(profile.role)){
  let permissions=$('exportPermissions');if(!permissions){permissions=document.createElement('div');permissions.id='exportPermissions';$('assignmentPanel').append(permissions);}
  permissions.innerHTML='<h3>Sensitive Excel export access</h3><p>Administrators can export care details. Grant this separately to pastors who need it. Restricted pastoral notes are never exported.</p>'+staff.filter(s=>s.role==='pastor'&&s.is_active).map(s=>`<label class="staff-toggle"><input type="checkbox" data-export="${s.id}" ${s.can_export_sensitive?'checked':''}> ${e(s.name)}</label>`).join('');
  permissions.querySelectorAll('[data-export]').forEach(input=>input.onchange=async()=>{input.disabled=true;const {error}=await supabase.rpc('set_sensitive_export',{p_user:input.dataset.export,p_enabled:input.checked});if(error){input.checked=!input.checked;setMessage($('ministryMessage'),error.message,'error');}input.disabled=false;});
+ permissions.insertAdjacentHTML('beforeend','<h3>Operations Admin report approval</h3><p>Super Admins and pastors may approve visitor report downloads for an Operations Admin.</p>'+staff.filter(s=>s.role==='coordinator'&&s.is_active).map(s=>`<label class="staff-toggle"><input type="checkbox" data-report="${s.id}" ${s.can_export_reports?'checked':''}> ${e(s.name)}</label>`).join(''));
+ permissions.querySelectorAll('[data-report]').forEach(input=>input.onchange=async()=>{input.disabled=true;const {error}=await supabase.rpc('set_report_export',{p_user:input.dataset.report,p_enabled:input.checked});if(error){input.checked=!input.checked;setMessage($('ministryMessage'),error.message,'error');}input.disabled=false;});
  }
  const scope=$('careScope').value,shown=requests.filter(r=>scope==='all'||(scope==='open'?r.status!=='Responded':r.status===scope)).sort((a,b)=>(a.priority==='Urgent'?-1:1)-(b.priority==='Urgent'?-1:1));
  $('careQueue').innerHTML=shown.map(r=>{const person=people.find(p=>p.person_id===r.person_id);return `<article class="note-item"><h3>${person?link(person):'Visitor'} · ${e(r.priority)} · ${e(r.status)}</h3><p>${e(r.reason)}</p>${leader()?`<form data-care="${r.id}" class="form-grid"><label>Pastor<select name="assigned_to"><option value="">Unassigned</option>${staff.filter(s=>s.role==='pastor'&&s.is_active).map(s=>`<option value="${s.id}" ${s.id===r.assigned_to?'selected':''}>${e(s.name)}</option>`).join('')}</select></label><label>Status<select name="status">${['Open','In progress','Responded'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></label><label>Response / agreed next step<textarea name="response" maxlength="3000">${e(r.response)}</textarea></label><button class="primary-action">Save care response</button></form>`:`<p>${e(r.response||'Awaiting pastoral response')}</p>`}</article>`;}).join('')||'<p>No requests in this view.</p>';

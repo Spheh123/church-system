@@ -96,7 +96,7 @@ async function loadUsers() {
 
   accessOverview.innerHTML = `
     <article class="summary-pill"><strong>${users.length}</strong><div>Total staff access</div></article>
-    <article class="summary-pill"><strong>${users.filter((user) => user.role === "admin").length}</strong><div>Admins</div></article>
+    <article class="summary-pill"><strong>${users.filter((user) => ["super_admin","admin","coordinator"].includes(user.role)).length}</strong><div>Administrators</div></article>
     <article class="summary-pill"><strong>${users.filter((user) => user.role === "pastor").length}</strong><div>Pastors</div></article>
     <article class="summary-pill"><strong>${activeThisWeek.length}</strong><div>Active this week</div></article>
   `;
@@ -115,7 +115,7 @@ async function loadUsers() {
           <span><strong>Added:</strong> ${formatTimestamp(user.created_at)}</span>
           <span><strong>Last active:</strong> ${formatTimestamp(user.last_active_at || user.last_login_at)}</span>
         </div>
-        ${currentProfile.role === "admin"
+        ${['super_admin','admin','pastor'].includes(currentProfile.role)
           ? `<button type="button" class="secondary-action user-password-reset" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name || user.email)}">Generate password</button>
             ${user.id !== currentProfile.id ? `<button type="button" class="ghost-action user-access-toggle" data-user-id="${user.id}" data-active="${user.is_active === false}">${user.is_active === false ? "Restore access" : "Disable access"}</button>` : ""}`
           : ""}
@@ -174,7 +174,7 @@ function showPassword(message) {
 }
 function bindAdminCreateUser() {
   populateRoleSelect(newUserRole, 'team');
-  if (currentProfile.role !== 'admin') { createUserForm.closest('.admin-panel').classList.add('hidden'); return; }
+  if (!['super_admin','admin','pastor'].includes(currentProfile.role)) { createUserForm.closest('.admin-panel').classList.add('hidden'); return; }
   createUserForm.addEventListener('submit', async event => {
     event.preventDefault();
     const button = event.submitter;
@@ -191,7 +191,7 @@ function bindAdminCreateUser() {
 }
 userDirectory.addEventListener('click', async event => {
   const button = event.target.closest('.user-password-reset, .user-access-toggle');
-  if (!button || currentProfile?.role !== 'admin') return;
+  if (!button || !['super_admin','admin','pastor'].includes(currentProfile?.role)) return;
   button.disabled = true;
   try {
     if (button.classList.contains('user-password-reset')) {
@@ -206,7 +206,7 @@ userDirectory.addEventListener('click', async event => {
   finally { button.disabled = false; }
 });
 initProtectedPage({
-  allowedRoles: ['admin', 'pastor'],
+  allowedRoles: ['super_admin','admin','coordinator','pastor'],
   onReady: async ({ profile }) => {
     currentProfile = profile;
     bindAdminCreateUser();

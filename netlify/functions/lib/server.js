@@ -22,7 +22,7 @@ async function api(path, { method = 'GET', body, token, prefer } = {}) {
     result?.msg || result?.message || result?.error_description || 'Database request failed.');
   return result;
 }
-async function authorize(event, allowed = ['admin', 'pastor', 'team', 'usher']) {
+async function authorize(event, allowed = ['super_admin', 'admin', 'coordinator', 'pastor', 'team', 'usher']) {
   const token = (event.headers?.authorization || event.headers?.Authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) throw new HttpError(401, 'Please sign in.');
   const user = await api('/auth/v1/user', { token });

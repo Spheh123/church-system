@@ -154,9 +154,10 @@ exportFilteredReportButton.addEventListener("click", async () => {
 });
 
 initProtectedPage({
-  allowedRoles: ["admin", "pastor"],
+  allowedRoles: ["super_admin", "admin", "coordinator", "pastor"],
   onReady: async ({profile}) => {
-    document.getElementById("includeSensitive").disabled = profile.role !== "admin" && !profile.can_export_sensitive;
+    if (profile.role === "coordinator" && !profile.can_export_reports) throw new Error("A Super Admin or pastor must approve report access.");
+    document.getElementById("includeSensitive").disabled = !["super_admin","admin"].includes(profile.role) && !profile.can_export_sensitive;
     await Promise.all([loadRows(), loadUsers(), loadHistory()]);
   },
 }).catch((error) => {

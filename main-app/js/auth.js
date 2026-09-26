@@ -123,10 +123,10 @@ function renderShell(profile) {
   const existingContent = document.createDocumentFragment();
   while (shell.firstChild) existingContent.append(shell.firstChild);
   const navMarkup = navItems
-    .filter((item) => item.roles.includes(profile.role))
+    .filter((item) => item.roles.includes(profile.role) && (!item.requiresReportPermission || ["super_admin","admin","pastor"].includes(profile.role) || profile.can_export_reports))
     .map((item) => {
       const activeClass = item.key === activeNav ? "active" : "";
-      return `<a class="nav-link ${activeClass}" href="${item.href}">${item.label}</a>`;
+      return `<a class="nav-link ${activeClass}" href="${item.href}">${profile.role === "usher" && item.usherLabel ? item.usherLabel : item.label}</a>`;
     })
     .join("");
 
@@ -236,8 +236,9 @@ export function populateRoleSelect(selectElement, selectedValue = "team") {
     return;
   }
 
-  selectElement.innerHTML = roles
-    .map((role) => `<option value="${role}" ${role === selectedValue ? "selected" : ""}>${role}</option>`)
+  const labels = { coordinator: "Operations Admin", pastor: "Pastor", team: "Follow-up Team", usher: "Usher" };
+  selectElement.innerHTML = roles.filter(role => !["super_admin","admin"].includes(role))
+    .map((role) => `<option value="${role}" ${role === selectedValue ? "selected" : ""}>${labels[role] || role}</option>`)
     .join("");
 }
 
@@ -284,7 +285,7 @@ export function subscribeTables(tables, callback) {
   return channel;
 }
 
-export async function initProtectedPage({ allowedRoles = ["admin","pastor","team"], onReady } = {}) {
+export async function initProtectedPage({ allowedRoles = ["super_admin","admin","coordinator","pastor","team"], onReady } = {}) {
   startLoading();
 
   try {

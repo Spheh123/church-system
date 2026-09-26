@@ -14,6 +14,26 @@ to = "/main-app/login.html"
 status = 301
 
 [[redirects]]
+from = "/usher-login"
+to = "/main-app/usher-login.html"
+status = 301
+
+[[redirects]]
+from = "/attendance"
+to = "/main-app/attendance.html"
+status = 301
+
+[[redirects]]
+from = "/training"
+to = "/main-app/training.html"
+status = 301
+
+[[redirects]]
+from = "/access"
+to = "/main-app/access.html"
+status = 301
+
+[[redirects]]
 from = "/dashboard"
 to = "/main-app/dashboard.html"
 status = 301

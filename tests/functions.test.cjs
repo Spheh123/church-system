@@ -28,7 +28,7 @@ test('Training content requires login and is limited by staff role',async()=>{
   const result=await endpoint(event({}));
   assert.equal(result.statusCode,200);
   const guides=JSON.parse(result.body).guides;
-  assert.deepEqual(guides.map(g=>g.id),role==='team'?['team']:['admin','pastors','team','ushers']);
+  assert.deepEqual(guides.map(g=>g.id),role==='team'?['team']:['admin','pastors','coordinator','team','ushers']);
  }
 });
 

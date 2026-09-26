@@ -1058,3 +1058,10 @@ a:focus-visible, button:focus-visible { outline: 3px solid #75aac6; outline-offs
 #journeyPeople a { display:inline-block; margin:4px 10px 8px 0; }
 #careQueue .note-item { margin-top:18px; }
 #journeyTimeline .note-item { border-left:3px solid #3155ba; padding-left:18px; }
+
+@media (min-width:981px) {
+  .sidebar { height:100dvh; min-height:0; overflow:hidden; }
+  .sidebar .brand-block { flex:0 0 auto; padding-bottom:16px; margin-bottom:12px; }
+  .sidebar-nav { flex:1 1 auto; min-height:0; overflow-y:auto; align-content:start; scrollbar-width:thin; padding-bottom:12px; }
+  .sidebar-footer { flex:0 0 auto; margin-top:12px; }
+}
