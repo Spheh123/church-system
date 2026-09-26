@@ -3,6 +3,9 @@ const path = require('node:path');
 const esbuild = require('esbuild');
 async function build({ output = 'dist', preview = false } = {}) {
   const root = path.resolve(output);
+  const projectRoot = path.resolve('.');
+  if (!root.startsWith(projectRoot + path.sep)) throw new Error('Build output must stay inside the project');
+  fs.rmSync(root, { recursive: true, force: true });
   fs.mkdirSync(root, { recursive: true });
   // Manuals are delivered only by the authenticated function, never static files.
   fs.cpSync('main-app', path.join(root, 'main-app'), { recursive: true, filter: source => path.resolve(source) !== path.resolve('main-app/training') });
