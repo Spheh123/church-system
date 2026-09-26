@@ -11,57 +11,57 @@ status = 301
 [[redirects]]
 from = "/login"
 to = "/main-app/login.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/usher-login"
 to = "/main-app/usher-login.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/attendance"
 to = "/main-app/attendance.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/training"
 to = "/main-app/training.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/access"
 to = "/main-app/access.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/dashboard"
 to = "/main-app/dashboard.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/people"
 to = "/main-app/people.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/person"
 to = "/main-app/person.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/followup"
 to = "/main-app/followup.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/reports"
 to = "/main-app/reports.html"
-status = 301
+status = 200
 
 [[redirects]]
 from = "/intake"
 to = "/main-app/intake.html"
-status = 301
+status = 200
 
 [build.environment]
 NODE_VERSION = "24"
