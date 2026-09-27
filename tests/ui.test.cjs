@@ -17,6 +17,13 @@ for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['dashbo
     assert.equal(document.querySelector('.app-main .page-content'), original, 'Navigation must preserve DOM nodes and listeners');
     assert.ok(!document.querySelector('.auth-problem'),'Page must initialise without errors');
     if(page==='dashboard') {
+      if(role==='admin') {
+        const menuButton=document.getElementById('mobileNavToggle');
+        assert.ok(menuButton,'Responsive navigation control must be present');
+        menuButton.click();
+        assert.ok(document.querySelector('.sidebar').classList.contains('menu-open'));
+        assert.equal(menuButton.getAttribute('aria-expanded'),'true');
+      }
       assert.match(document.getElementById('summaryCards').textContent,/2/);
       const restricted = role === 'coordinator';
       assert.equal(document.getElementById('staffAccessSection').classList.contains('hidden'),restricted);

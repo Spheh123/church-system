@@ -138,12 +138,15 @@ function renderShell(profile) {
   shell.innerHTML = `
     <aside class="sidebar">
       <div class="brand-block">
-        <a href="https://streamsofjoyjohannesburg.org/"><img class="church-logo" src="${appConfig.logoPath}" alt="Streams of Joy Johannesburg"></a>
+        <div class="brand-row">
+          <a href="https://streamsofjoyjohannesburg.org/"><img class="church-logo" src="${appConfig.logoPath}" alt="Streams of Joy Johannesburg"></a>
+          <button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-expanded="false" aria-controls="sidebarNavigation"><span aria-hidden="true">☰</span><span>Menu</span></button>
+        </div>
         <span class="eyebrow">Ministry workspace</span>
         <p>Every person matters.</p>
       </div>
 
-      <nav class="sidebar-nav">${navMarkup}</nav>
+      <nav id="sidebarNavigation" class="sidebar-nav">${navMarkup}</nav>
 
       <div class="sidebar-footer">
         <strong>${escapeHtml(profile.name || profile.email)}</strong>
@@ -175,6 +178,17 @@ function renderShell(profile) {
     await supabase.auth.signOut({ scope: "local" });
     navigateTo(currentFileName() === "attendance.html" ? "usher-login.html" : "login.html");
   });
+
+  const sidebar = shell.querySelector(".sidebar");
+  const mobileNavToggle = document.getElementById("mobileNavToggle");
+  mobileNavToggle?.addEventListener("click", () => {
+    const open = sidebar.classList.toggle("menu-open");
+    mobileNavToggle.setAttribute("aria-expanded", String(open));
+  });
+  shell.querySelectorAll(".sidebar-nav .nav-link").forEach(link => link.addEventListener("click", () => {
+    sidebar.classList.remove("menu-open");
+    mobileNavToggle?.setAttribute("aria-expanded", "false");
+  }));
 }
 
 export function escapeHtml(value = "") {
