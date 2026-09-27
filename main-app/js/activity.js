@@ -3,6 +3,7 @@ import { appConfig } from '../../shared/config.js';
 let currentProfile = null;
 let lastInteraction = Date.now();
 let inFlight = false;
+let consecutiveFailures = 0;
 for (const event of ['pointerdown', 'keydown', 'scroll', 'touchstart']) {
   window.addEventListener(event, () => { lastInteraction = Date.now(); }, { passive: true });
 }
@@ -22,7 +23,7 @@ async function sessionEvent(action) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
   const response = await fetch('/.netlify/functions/session', {
-    method: 'POST', signal: AbortSignal.timeout(10000),
+    method: 'POST', signal: AbortSignal.timeout(20000),
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
     body: JSON.stringify({ action, active: !document.hidden && Date.now() - lastInteraction < 120000 }),
   });
@@ -39,9 +40,13 @@ export async function touchPresence() {
   inFlight = true;
   try {
     await sessionEvent('heartbeat');
+    consecutiveFailures = 0;
     document.getElementById('trackingWarning')?.remove();
   } catch (error) {
-    if (!document.getElementById('trackingWarning')) {
+    consecutiveFailures += 1;
+    // A cold function or brief connection drop must not alarm staff. Show the
+    // warning only when two consecutive tracking attempts have failed.
+    if (consecutiveFailures >= 2 && !document.getElementById('trackingWarning')) {
       const warning = document.createElement('p');
       warning.id = 'trackingWarning'; warning.className = 'inline-alert error'; warning.role = 'status';
       warning.textContent = 'Login tracking is unavailable. Please tell your administrator; this session may be incomplete.';

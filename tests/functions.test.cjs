@@ -18,7 +18,7 @@ test('Staff cannot create users or reset another user password', async()=>{
 });
 test('Unauthenticated requests cannot access admin or report endpoints',async()=>{
   global.fetch=async()=>{throw new Error('Must not call backend');};
-  for(const file of ['admin-create-user','admin-reset-user-password','admin-manage-user','report-export']) assert.equal((await require('../netlify/functions/'+file).handler(event({},false))).statusCode,401);
+  for(const file of ['admin-create-user','admin-reset-user-password','admin-manage-user','report-export','attendance-report']) assert.equal((await require('../netlify/functions/'+file).handler(event({},false))).statusCode,401);
 });
 test('Training content requires login and is limited by staff role',async()=>{
  const endpoint=require('../netlify/functions/training-manuals').handler;
@@ -99,4 +99,11 @@ test('Sensitive report export is server-authorised and ordinary export omits car
  assert.equal((await handler(event({sensitive:true}))).statusCode,403);assert.equal(queries.length,0);
  assert.equal((await handler(event({sensitive:false}))).statusCode,200);assert.ok(!queries[0].includes('prayer_points'));assert.ok(!queries[0].includes('followup_notes'));
  sensitivePermission=true;assert.equal((await handler(event({sensitive:true}))).statusCode,200);assert.ok(queries[1].includes('prayer_points'));assert.ok(!queries[1].includes('pastoral_notes'));
+});
+
+test('Attendance Excel is prepared on the server for pastors and Super Admins',async()=>{
+ const ExcelJS=require('exceljs');const endpoint=require('../netlify/functions/attendance-report').handler;let role='pastor';
+ global.fetch=async(url)=>{const u=String(url);if(u.endsWith('/auth/v1/user'))return response({id:staffId});if(u.includes('/users?'))return response([{id:staffId,role,is_active:true}]);if(u.includes('/service_attendance?'))return response([{service_date:'2026-09-21',service_type:'Sunday first',service_name:'',men:10,women:12,teens:3,children:5}]);if(u.includes('/activity_logs'))return response(null);throw new Error('Unexpected request '+u);};
+ for(const allowedRole of ['pastor','super_admin']){role=allowedRole;const result=await endpoint(event({from:'2026-09-01',to:'2026-09-30',service:''}));assert.equal(result.statusCode,200);assert.equal(result.isBase64Encoded,true);const book=new ExcelJS.Workbook();await book.xlsx.load(Buffer.from(result.body,'base64'));assert.equal(book.getWorksheet('Service attendance').getCell('H2').value,30);assert.ok(book.getWorksheet('Service attendance').getTable('Attendance').table.columns.every(column=>column.filterButton));}
+ role='team';assert.equal((await endpoint(event({}))).statusCode,403);
 });
