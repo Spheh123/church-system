@@ -30,7 +30,7 @@ end $$;
 revoke all on function public.save_followup(uuid,text,uuid,text,timestamptz) from public,anon;
 grant execute on function public.save_followup(uuid,text,uuid,text,timestamptz) to authenticated;
 drop policy if exists "leaders read sessions" on public.login_sessions;
-create policy "leaders read sessions" on public.login_sessions for select to authenticated using(public.current_role() in ('super_admin','admin','coordinator','pastor'));
+create policy "leaders read sessions" on public.login_sessions for select to authenticated using(public.current_role() in ('super_admin','admin','pastor'));
 drop policy if exists "leaders edit people" on public.people;
 create policy "leaders edit people" on public.people for update to authenticated using(public.current_role() in ('super_admin','admin','coordinator','pastor')) with check(public.current_role() in ('super_admin','admin','coordinator','pastor'));
 drop policy if exists pastoral_read on public.pastoral_notes;

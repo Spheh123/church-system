@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 const esbuild = require('esbuild');
 const fs = require('node:fs');
 const path = require('node:path');
-for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['dashboard','coordinator'],['people','team'],['person','admin'],['person','team'],['followup','team'],['reports','pastor'],['attendance','usher'],['ministry','pastor']]) {
+for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['dashboard','coordinator'],['people','team'],['person','admin'],['person','team'],['followup','team'],['reports','pastor'],['attendance','usher'],['ministry','pastor'],['ministry','admin'],['ministry','coordinator']]) {
   test(`${page} renders real page nodes and controls for ${role}`, async () => {
     const dom = new JSDOM(fs.readFileSync(`main-app/${page}.html`,'utf8'), { url:`http://localhost/main-app/${page}.html?role=${role}&id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,runScripts:'outside-only' });
     const bundle = await esbuild.build({ entryPoints:[path.resolve(`main-app/js/${page}.js`)],bundle:true,format:'iife',write:false,plugins:[{name:'fixture',setup(b){b.onResolve({filter:/shared\/supabase\.js$/},()=>({path:path.resolve('tests/fixtures/supabase.js')}));}}] });
@@ -18,8 +18,12 @@ for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['dashbo
     assert.ok(!document.querySelector('.auth-problem'),'Page must initialise without errors');
     if(page==='dashboard') {
       assert.match(document.getElementById('summaryCards').textContent,/2/);
-      assert.match(document.getElementById('sessionHistory').textContent,/Preview Administrator/);
-      assert.equal(document.querySelector('.admin-panel').classList.contains('hidden'),role==='coordinator');
+      const restricted = role === 'coordinator';
+      assert.equal(document.getElementById('staffAccessSection').classList.contains('hidden'),restricted);
+      assert.equal(document.getElementById('staffLoginSection').classList.contains('hidden'),restricted);
+      assert.equal(document.getElementById('systemActivitySection').classList.contains('hidden'),restricted);
+      if (restricted) assert.doesNotMatch(document.getElementById('sessionHistory').textContent,/Preview Administrator/);
+      else assert.match(document.getElementById('sessionHistory').textContent,/Preview Administrator/);
     }
     if(page==='people') {
       const search=document.getElementById('searchInput');search.value='Another';search.dispatchEvent(new dom.window.Event('input'));
@@ -36,6 +40,11 @@ for (const [page,role] of [['dashboard','admin'],['dashboard','pastor'],['dashbo
       assert.equal(document.getElementById('attendanceRows').textContent,'');
       assert.ok(!document.querySelector('.sidebar-nav').textContent.includes('Reports'));
       assert.match(document.querySelector('.sidebar-nav').textContent,/Submit attendance/);
+    }
+    if(page==='ministry') {
+      const approvalText=document.getElementById('exportPermissions')?.textContent || '';
+      if(role==='pastor') assert.match(approvalText,/Operations Admin report approval/,'Pastors can approve Operations Admin reports');
+      else assert.doesNotMatch(approvalText,/Operations Admin report approval/,'Only Super Admins and pastors see report approval controls');
     }
     dom.window.close();
   });

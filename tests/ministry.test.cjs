@@ -2,9 +2,9 @@ const {test}=require('node:test');const assert=require('node:assert/strict');con
 test('Ministry permissions isolate ushers, restrict notes, protect attendance and balance assignment',async()=>{
  const db=new PGlite();try{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;create function auth.role() returns text language sql stable as $$ select current_setting('request.jwt.claim.role',true) $$;grant usage on schema public,auth to anon,authenticated,service_role;grant execute on all functions in schema auth to anon,authenticated,service_role;`);
- for(const file of ['schema','upgrade','usher-role','role-hierarchy-values','ministry-operations','pastoral-notes','automatic-assignment','export-permissions','visitor-intake-journey','contact-milestones','attendance-leaders-only','shared-followup-workspace'])await db.exec(fs.readFileSync('supabase/'+file+'.sql','utf8').replace('create extension if not exists pgcrypto;',''));
- const ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','33333333-3333-4333-8333-333333333333','44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555'];
- for(const [i,role] of ['admin','pastor','team','usher','team'].entries()){await db.query('insert into auth.users values($1)',[ids[i]]);await db.query('insert into users(id,name,email,role)values($1,$2,$3,$4)',[ids[i],role,role+i+'@test.invalid',role]);}
+ for(const file of ['schema','upgrade','usher-role','role-hierarchy-values','ministry-operations','pastoral-notes','automatic-assignment','export-permissions','visitor-intake-journey','contact-milestones','attendance-leaders-only','shared-followup-workspace','coordinator-privacy'])await db.exec(fs.readFileSync('supabase/'+file+'.sql','utf8').replace('create extension if not exists pgcrypto;',''));
+ const ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','33333333-3333-4333-8333-333333333333','44444444-4444-4444-8444-444444444444','55555555-5555-4555-8555-555555555555','66666666-6666-4666-8666-666666666666','77777777-7777-4777-8777-777777777777'];
+ for(const [i,role] of ['admin','pastor','team','usher','team','coordinator','super_admin'].entries()){await db.query('insert into auth.users values($1)',[ids[i]]);await db.query('insert into users(id,name,email,role)values($1,$2,$3,$4)',[ids[i],role,role+i+'@test.invalid',role]);}
  await db.exec("insert into people(full_name) values('One'),('Two'),('Three')");
  const persons=(await db.query('select id from people order by id')).rows;
  async function as(i,sql){await db.exec(`reset role;select set_config('request.jwt.claim.sub','${ids[i]}',false);select set_config('request.jwt.claim.role','authenticated',false);set role authenticated;`);return db.query(sql);}
@@ -34,5 +34,16 @@ test('Ministry permissions isolate ushers, restrict notes, protect attendance an
  await as(2,`select save_followup('${persons[0].id}','not_called','${ids[4]}','Handed over to another worker',null)`);
  assert.equal((await as(4,`select assigned_to from followups where person_id='${persons[0].id}'`)).rows[0].assigned_to,ids[4]);
  assert.equal((await as(1,`select * from service_attendance where id='${service}'`)).rows[0].men,11);
+ await db.exec('reset role');
+ await db.query('insert into login_sessions(id,user_id) values($1,$2)',['88888888-8888-4888-8888-888888888888',ids[0]]);
+ await db.query("insert into activity_logs(user_id,action,details) values($1,'login','{}'),($1,'access_changed','{}')",[ids[0]]);
+ await db.query("insert into activity_logs(user_id,action,person_id,details) values($1,'followup_updated',$2,'{}')",[ids[0],persons[0].id]);
+ assert.equal((await as(5,'select * from login_sessions')).rows.length,0,'Operations Admin cannot read staff login history');
+ assert.equal((await as(5,'select * from activity_logs where person_id is null')).rows.length,0,'Operations Admin cannot read login or access activity');
+ assert.ok((await as(5,'select * from activity_logs where person_id is not null')).rows.length>0,'Operations Admin keeps visitor care history');
+ await assert.rejects(as(5,`select set_report_export('${ids[5]}',true)`),/Super Admin or pastor/);
+ await assert.rejects(as(0,`select set_report_export('${ids[5]}',true)`),/Super Admin or pastor/);
+ await as(1,`select set_report_export('${ids[5]}',true)`);
+ assert.equal((await as(0,`select can_export_reports from users where id='${ids[5]}'`)).rows[0].can_export_reports,true);
  }finally{await db.close();}
 });

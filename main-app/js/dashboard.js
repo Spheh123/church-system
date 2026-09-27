@@ -14,6 +14,9 @@ const generatedPasswordCard = document.getElementById("generatedPasswordCard");
 const userDirectory = document.getElementById("userDirectory");
 const activityAuditLog = document.getElementById("activityAuditLog");
 const accessOverview = document.getElementById("accessOverview");
+const staffAccessSection = document.getElementById("staffAccessSection");
+const staffLoginSection = document.getElementById("staffLoginSection");
+const systemActivitySection = document.getElementById("systemActivitySection");
 
 let currentProfile = null;
 let people = [];
@@ -209,9 +212,18 @@ initProtectedPage({
   allowedRoles: ['super_admin','admin','coordinator','pastor'],
   onReady: async ({ profile }) => {
     currentProfile = profile;
-    bindAdminCreateUser();
-    await Promise.all([loadPeople(), loadUsers(), loadActivityAudit(), loadSessions()]);
-    const channels = [subscribeTables(['people','followups'], loadPeople), subscribeTables(['users'], loadUsers), subscribeTables(['activity_logs'], loadActivityAudit), subscribeTables(['login_sessions'], loadSessions)];
+    const canMonitorStaff = ['super_admin','admin','pastor'].includes(profile.role);
+    staffAccessSection.classList.toggle('hidden', !canMonitorStaff);
+    staffLoginSection.classList.toggle('hidden', !canMonitorStaff);
+    systemActivitySection.classList.toggle('hidden', !canMonitorStaff);
+    const loads = [loadPeople()];
+    const channels = [subscribeTables(['people','followups'], loadPeople)];
+    if (canMonitorStaff) {
+      bindAdminCreateUser();
+      loads.push(loadUsers(), loadActivityAudit(), loadSessions());
+      channels.push(subscribeTables(['users'], loadUsers), subscribeTables(['activity_logs'], loadActivityAudit), subscribeTables(['login_sessions'], loadSessions));
+    }
+    await Promise.all(loads);
     window.addEventListener('beforeunload', () => channels.forEach(c => supabase.removeChannel(c)));
   },
 });
