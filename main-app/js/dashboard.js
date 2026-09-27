@@ -171,7 +171,7 @@ async function loadSessions() {
   }).join('') + '</tbody></table></div>' : '<div class="empty-state">Login sessions will appear here as staff sign in.</div>';
 }
 function showPassword(message) {
-  setMessage(generatedPasswordCard, message + ' Copy it now and share it privately with this person.', 'success');
+  setMessage(generatedPasswordCard, message + ' Copy it now and share it privately. It is temporary; the person will create a personal password after signing in.', 'success');
   generatedPasswordCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
   window.setTimeout(() => clearMessage(generatedPasswordCard), 120000);
 }
@@ -186,7 +186,7 @@ function bindAdminCreateUser() {
     try {
       const result = await apiRequest(appConfig.adminUserProvisionPath, { name: document.getElementById('newUserName').value.trim(), email: document.getElementById('newUserEmail').value.trim(), role: newUserRole.value });
       createUserForm.reset(); populateRoleSelect(newUserRole, 'team');
-      showPassword('Account created. Password: ' + result.password);
+      showPassword('Account created. Temporary password: ' + result.password);
       await Promise.all([loadUsers(), loadActivityAudit()]);
     } catch (error) { setMessage(generatedPasswordCard, error.message, 'error'); }
     finally { button.disabled = false; }
@@ -199,7 +199,7 @@ userDirectory.addEventListener('click', async event => {
   try {
     if (button.classList.contains('user-password-reset')) {
       const result = await apiRequest(appConfig.adminPasswordResetPath, { userId: button.dataset.userId });
-      showPassword(button.dataset.userName + ' — new password: ' + result.password);
+      showPassword(button.dataset.userName + ' — new temporary password: ' + result.password);
     } else {
       await apiRequest('/.netlify/functions/admin-manage-user', { userId: button.dataset.userId, active: button.dataset.active === 'true' });
       setMessage(generatedPasswordCard, 'Staff access updated.', 'success');

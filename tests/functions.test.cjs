@@ -18,7 +18,7 @@ test('Staff cannot create users or reset another user password', async()=>{
 });
 test('Unauthenticated requests cannot access admin or report endpoints',async()=>{
   global.fetch=async()=>{throw new Error('Must not call backend');};
-  for(const file of ['admin-create-user','admin-reset-user-password','admin-manage-user','report-export','attendance-report']) assert.equal((await require('../netlify/functions/'+file).handler(event({},false))).statusCode,401);
+  for(const file of ['admin-create-user','admin-reset-user-password','admin-manage-user','change-own-password','report-export','attendance-report']) assert.equal((await require('../netlify/functions/'+file).handler(event({},false))).statusCode,401);
 });
 test('Training content requires login and is limited by staff role',async()=>{
  const endpoint=require('../netlify/functions/training-manuals').handler;
@@ -45,6 +45,8 @@ test('Failed account provisioning compensates only the newly created auth accoun
   };
   const result=await require('../netlify/functions/admin-create-user').handler(event({name:'Example Staff',email:'staff@example.test',role:'team'}));
   assert.equal(result.statusCode,400);
+  const createBody=JSON.parse(calls.find(([url])=>url.endsWith('/auth/v1/admin/users'))[1].body);
+  assert.match(createBody.app_metadata.staff_password_change,/^required:[a-f0-9-]{36}$/);
   assert.ok(calls.some(([url,o])=>url.endsWith('/new-account-id')&&o.method==='DELETE'));
 });
 test('Password reset uses a new protected nonce and never audits the password',async()=>{
@@ -58,10 +60,48 @@ test('Password reset uses a new protected nonce and never audits the password',a
   const result=await require('../netlify/functions/admin-reset-user-password').handler(event({userId:staffId}));
   assert.equal(result.statusCode,200);
   const generated=JSON.parse(result.body).password;
-  assert.ok(generated.length>=20);
+  assert.equal(generated.length,12);
   const update=JSON.parse(calls.find(([url])=>url.includes('/auth/v1/admin/users/'))[1].body);
-  assert.match(update.app_metadata.staff_password_change,/^[a-f0-9-]{36}$/);
+  assert.match(update.app_metadata.staff_password_change,/^required:[a-f0-9-]{36}$/);
   assert.ok(!calls.find(([url])=>url.endsWith('activity_logs'))[1].body.includes(generated));
+});
+test('Staff can replace a required temporary password with a personal password',async()=>{
+  const calls=[];
+  global.fetch=async(url,options)=>{
+    calls.push([String(url),options]);
+    if(String(url).endsWith('/auth/v1/user'))return response({id:staffId,app_metadata:{staff_password_change:'required:old-marker',provider:'email'}});
+    if(String(url).includes('/rest/v1/users?'))return response([{id:staffId,role:'team',is_active:true}]);
+    return response({});
+  };
+  const endpoint=require('../netlify/functions/change-own-password').handler;
+  const result=await endpoint(event({password:'MySecurePass7'}));
+  assert.equal(result.statusCode,200);
+  const updateCall=calls.find(([url])=>url.includes('/auth/v1/admin/users/'));
+  const update=JSON.parse(updateCall[1].body);
+  assert.equal(update.password,'MySecurePass7');
+  assert.match(update.app_metadata.staff_password_change,/^completed:[a-f0-9-]{36}$/);
+  assert.equal(update.app_metadata.provider,'email');
+  const auditBody=calls.find(([url])=>url.endsWith('/activity_logs'))[1].body;
+  assert.ok(!auditBody.includes('MySecurePass7'));
+});
+test('Personal password endpoint rejects weak passwords and completed resets',async()=>{
+  const endpoint=require('../netlify/functions/change-own-password').handler;
+  let marker='required:old';
+  global.fetch=async url=>String(url).endsWith('/auth/v1/user')
+    ?response({id:staffId,app_metadata:{staff_password_change:marker}})
+    :response([{id:staffId,role:'team',is_active:true}]);
+  assert.equal((await endpoint(event({password:'short'}))).statusCode,400);
+  marker='completed:old';
+  assert.equal((await endpoint(event({password:'MySecurePass7'}))).statusCode,403);
+});
+test('Existing staff accounts without a marker receive the one-time personal password setup',async()=>{
+  const endpoint=require('../netlify/functions/change-own-password').handler;
+  global.fetch=async url=>String(url).endsWith('/auth/v1/user')
+    ?response({id:staffId,app_metadata:{provider:'email'}})
+    :String(url).includes('/rest/v1/users?')
+      ?response([{id:staffId,role:'pastor',is_active:true}])
+      :response({});
+  assert.equal((await endpoint(event({password:'MySecurePass7'}))).statusCode,200);
 });
 test('Form intake fails closed without a secret and rejects the old public bypass',async()=>{
   const intake=require('../netlify/functions/form-intake').handler;

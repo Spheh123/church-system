@@ -25,6 +25,11 @@ to = "/main-app/usher-login.html"
 status = 200
 
 [[redirects]]
+from = "/change-password"
+to = "/main-app/change-password.html"
+status = 200
+
+[[redirects]]
 from = "/attendance"
 to = "/main-app/attendance.html"
 status = 200

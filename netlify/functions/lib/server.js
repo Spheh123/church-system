@@ -38,7 +38,9 @@ function parseBody(event) {
 }
 function password() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
-  return 'J9!' + Array.from({ length: 19 }, () => chars[randomInt(chars.length)]).join('');
+  // Temporary passwords stay short enough to type from a private message.
+  // Staff replace them with a personal password immediately after signing in.
+  return 'J9!' + Array.from({ length: 9 }, () => chars[randomInt(chars.length)]).join('');
 }
 async function audit(userId, action, details = {}, personId = null) {
   return api('/rest/v1/activity_logs', { method: 'POST', body: { user_id: userId, action, details, person_id: personId } });

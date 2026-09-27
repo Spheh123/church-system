@@ -1,4 +1,5 @@
 const { api, authorize, parseBody, password, audit, handler, HttpError } = require('./lib/server');
+const { randomUUID } = require('node:crypto');
 exports.handler = handler(async event => {
   const { user, profile: actor } = await authorize(event, ['super_admin', 'admin', 'pastor']);
   const input = parseBody(event);
@@ -6,7 +7,13 @@ exports.handler = handler(async event => {
   const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
   if (!name || name.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !['coordinator', 'pastor', 'team', 'usher'].includes(input.role) || (input.role === 'coordinator' && actor.role !== 'super_admin')) throw new HttpError(400, 'Enter a name, valid email address, and permitted role.');
   const generated = password();
-  const created = await api('/auth/v1/admin/users', { method: 'POST', body: { email, password: generated, email_confirm: true, user_metadata: { name } } });
+  const created = await api('/auth/v1/admin/users', { method: 'POST', body: {
+    email,
+    password: generated,
+    email_confirm: true,
+    user_metadata: { name },
+    app_metadata: { staff_password_change: `required:${randomUUID()}` },
+  } });
   const id = created.user?.id || created.id;
   let profile;
   try {

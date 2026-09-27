@@ -10,6 +10,7 @@ export const appConfig = {
   formWebhookPath: "/.netlify/functions/form-intake",
   adminUserProvisionPath: "/.netlify/functions/admin-create-user",
   adminPasswordResetPath: "/.netlify/functions/admin-reset-user-password",
+  changeOwnPasswordPath: "/.netlify/functions/change-own-password",
   publicIntakePath: "intake.html",
   firstTimerWindowDays: 2,
   sessionHeartbeatMs: 60_000,

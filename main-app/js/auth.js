@@ -28,6 +28,11 @@ function navigateTo(target) {
   window.location.assign(target);
 }
 
+function passwordChangeRequired(user) {
+  const marker = user?.app_metadata?.staff_password_change;
+  return !String(marker || "").startsWith("completed:");
+}
+
 function startLoading() {
   document.body.classList.add("auth-loading");
 }
@@ -305,6 +310,12 @@ export async function initProtectedPage({ allowedRoles = ["super_admin","admin",
     currentProfile = profile;
     setActivityProfile(profile);
     await recordLogin();
+
+    if (passwordChangeRequired(session.user)) {
+      navigateTo("change-password.html");
+      return;
+    }
+
     startPresenceHeartbeat();
 
     if (!allowedRoles.includes(profile.role)) {
@@ -350,7 +361,7 @@ async function handleLoginSubmit(event) {
     const profile = await getProfile(data.user.id);
     setActivityProfile(profile);
     await recordLogin();
-    navigateTo(routeForRole(profile.role));
+    navigateTo(passwordChangeRequired(data.user) ? "change-password.html" : routeForRole(profile.role));
   } catch (error) {
     setMessage(message, friendlyError(error), "error");
   } finally {
@@ -367,6 +378,12 @@ function initLoginPage() {
   loginForm.dataset.bound = "true";
   loginForm.addEventListener("submit", handleLoginSubmit);
 
+  const query = new URLSearchParams(window.location.search);
+  if (query.get("password") === "changed") {
+    setMessage(document.getElementById("loginMessage"), "Password saved. Sign in with your new personal password.", "success");
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+
   supabase.auth.getSession().then(async ({ data: { session } }) => {
     if (!session) {
       return;
@@ -374,7 +391,7 @@ function initLoginPage() {
 
     try {
       const profile = await getProfile(session.user.id);
-      navigateTo(routeForRole(profile.role));
+      navigateTo(passwordChangeRequired(session.user) ? "change-password.html" : routeForRole(profile.role));
     } catch (error) {
       console.warn("Login redirect skipped", error);
     }
@@ -393,7 +410,7 @@ function initIndexPage() {
     try {
       const profile = await getProfile(session.user.id);
       stopLoading();
-      navigateTo(routeForRole(profile.role));
+      navigateTo(passwordChangeRequired(session.user) ? "change-password.html" : routeForRole(profile.role));
     } catch (error) {
       console.warn("Index redirect failed", error);
       stopLoading();
